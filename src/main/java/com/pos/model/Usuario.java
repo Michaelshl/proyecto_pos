@@ -22,10 +22,14 @@ public class Usuario {
     @Column(unique = true)
     private String email;
 
+    // Aquí se guarda el hash BCrypt, NUNCA la contraseña en texto plano
     private String password;
 
     private Boolean activo;
 
+    // Relación muchos-a-uno: muchos usuarios pueden tener el mismo rol.
+    // @JoinColumn indica que en la tabla "usuarios" habrá una columna "rol_id"
+    // que es clave foránea hacia la tabla "roles"
     @ManyToOne
     @JoinColumn(name = "rol_id")
     private Rol rol;

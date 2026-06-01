@@ -29,6 +29,9 @@ public class UsuarioService {
     }
 
     public UsuarioResponse crear(UsuarioRequest request) {
+        // Validaciones de unicidad ANTES de crear el objeto Usuario.
+        // Si lo hiciéramos después, la BD lanzaría una excepción de constraint
+        // más difícil de manejar y con mensajes de error menos claros al cliente.
         if (usuarioRepository.existsByEmail(request.getEmail())) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "El email ya está registrado");
@@ -48,6 +51,7 @@ public class UsuarioService {
         usuario.setApellido(request.getApellido());
         usuario.setUsername(request.getUsername());
         usuario.setEmail(request.getEmail());
+        // La contraseña se encripta aquí: NUNCA se guarda texto plano en la BD.
         usuario.setPassword(passwordEncoder.encode(request.getPassword()));
         usuario.setActivo(true);
         usuario.setRol(rol);
@@ -61,6 +65,8 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
+        // Solo actualizamos los campos permitidos (nombre, apellido, email).
+        // No tocamos username, password ni rol porque tienen restricciones explicadas en el DTO.
         usuario.setNombre(request.getNombre());
         usuario.setApellido(request.getApellido());
         usuario.setEmail(request.getEmail());
@@ -79,6 +85,8 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
+        // Soft delete: no eliminamos el registro, solo lo marcamos como inactivo.
+        // Esto preserva el historial y evita problemas de integridad referencial.
         usuario.setActivo(false);
         usuarioRepository.save(usuario);
         return "Usuario inactivado exitosamente";
