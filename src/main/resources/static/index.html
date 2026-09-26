@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>POS - Gestión de Usuarios</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; }
+
+    header {
+      background: #1a1a2e; color: white;
+      padding: 16px 32px; display: flex;
+      justify-content: space-between; align-items: center;
+    }
+    header h1 { font-size: 20px; }
+    #status { font-size: 13px; color: #aef; }
+
+    .container { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+
+    .card {
+      background: white; border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 24px; margin-bottom: 24px;
+    }
+    .card h2 { font-size: 16px; margin-bottom: 16px; color: #333; border-bottom: 2px solid #1a1a2e; padding-bottom: 8px; }
+
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .form-row input, .form-row select {
+      flex: 1; min-width: 140px; padding: 8px 12px;
+      border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
+    }
+    button {
+      padding: 9px 20px; border: none; border-radius: 6px;
+      cursor: pointer; font-size: 14px; font-weight: bold;
+    }
+    .btn-primary { background: #1a1a2e; color: white; }
+    .btn-danger  { background: #dc3545; color: white; }
+    .btn-warning { background: #ffc107; color: #333; }
+    button:hover { opacity: 0.85; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { background: #1a1a2e; color: white; padding: 10px; text-align: left; }
+    td { padding: 10px; border-bottom: 1px solid #eee; }
+    tr:hover td { background: #f9f9f9; }
+    .badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .badge-active   { background: #d4edda; color: #155724; }
+    .badge-inactive { background: #f8d7da; color: #721c24; }
+
+    .msg { padding: 10px 16px; border-radius: 6px; margin-top: 12px; font-size: 14px; display: none; }
+    .msg-ok  { background: #d4edda; color: #155724; }
+    .msg-err { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🛒 POS — Gestión de Usuarios</h1>
+  <span id="status">Conectando...</span>
+</header>
+
+<div class="container">
+
+  <!-- CREAR USUARIO -->
+  <div class="card">
+    <h2>Crear Usuario</h2>
+    <div class="form-row">
+      <input id="c-nombre"   placeholder="Nombre" />
+      <input id="c-apellido" placeholder="Apellido" />
+      <input id="c-username" placeholder="Username" />
+    </div>
+    <div class="form-row">
+      <input id="c-email"    placeholder="Email" type="email" />
+      <input id="c-password" placeholder="Contraseña" type="password" />
+      <select id="c-rol"><option value="1">ADMIN</option></select>
+    </div>
+    <button class="btn-primary" onclick="crearUsuario()">Crear Usuario</button>
+    <div id="msg-crear" class="msg"></div>
+  </div>
+
+  <!-- TABLA DE USUARIOS -->
+  <div class="card">
+    <h2>Usuarios Registrados <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarUsuarios()">↺ Recargar</button></h2>
+    <table>
+      <thead><tr><th>ID</th><th>Nombre</th><th>Username</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody id="tabla-usuarios"><tr><td colspan="7" style="text-align:center;color:#999">Cargando...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- ACTUALIZAR USUARIO -->
+  <div class="card">
+    <h2>Actualizar Usuario</h2>
+    <div class="form-row">
+      <input id="u-id"       placeholder="ID del usuario" type="number" style="max-width:100px" />
+      <input id="u-nombre"   placeholder="Nuevo nombre" />
+      <input id="u-apellido" placeholder="Nuevo apellido" />
+      <input id="u-email"    placeholder="Nuevo email" type="email" />
+    </div>
+    <button class="btn-warning" onclick="actualizarUsuario()">Actualizar</button>
+    <div id="msg-actualizar" class="msg"></div>
+  </div>
+
+  <!-- INACTIVAR USUARIO -->
+  <div class="card">
+    <h2>Inactivar Usuario</h2>
+    <div class="form-row">
+      <input id="i-id"     placeholder="ID del usuario" type="number" style="max-width:100px" />
+      <input id="i-motivo" placeholder="Motivo de inactivación" style="flex:3" />
+    </div>
+    <button class="btn-danger" onclick="inactivarUsuario()">Inactivar</button>
+    <div id="msg-inactivar" class="msg"></div>
+  </div>
+
+</div>
+
+<script>
+  let token = null;
+
+  async function login() {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'admin2', password: 'admin123' })
+      });
+      if (!res.ok) throw new Error('Login fallido');
+      const data = await res.json();
+      token = data.token;
+      document.getElementById('status').textContent = '✅ Conectado como admin2';
+      cargarUsuarios();
+    } catch (e) {
+      document.getElementById('status').textContent = '❌ Error de conexión';
+    }
+  }
+
+  async function cargarUsuarios() {
+    const tbody = document.getElementById('tabla-usuarios');
+    try {
+      const res = await fetch('/api/usuarios', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.status === 404) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">Sin usuarios aún</td></tr>';
+        return;
+      }
+      const usuarios = await res.json();
+      if (!Array.isArray(usuarios) || usuarios.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">Sin usuarios</td></tr>';
+        return;
+      }
+      tbody.innerHTML = usuarios.map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td>${u.nombre} ${u.apellido}</td>
+          <td>${u.username}</td>
+          <td>${u.email}</td>
+          <td>${u.rol}</td>
+          <td><span class="badge ${u.activo ? 'badge-active' : 'badge-inactive'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
+          <td>
+            <button class="btn-warning" style="font-size:12px;padding:4px 10px" onclick="fillActualizar(${u.id},'${u.nombre}','${u.apellido}','${u.email}')">Editar</button>
+            <button class="btn-danger"  style="font-size:12px;padding:4px 10px;margin-left:4px" onclick="fillInactivar(${u.id})">Inactivar</button>
+          </td>
+        </tr>`).join('');
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">Sin usuarios aún</td></tr>';
+    }
+  }
+
+  async function crearUsuario() {
+    const body = {
+      nombre:   document.getElementById('c-nombre').value,
+      apellido: document.getElementById('c-apellido').value,
+      username: document.getElementById('c-username').value,
+      email:    document.getElementById('c-email').value,
+      password: document.getElementById('c-password').value,
+      rolId:    parseInt(document.getElementById('c-rol').value)
+    };
+    const res = await fetch('/api/usuarios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(body)
+    });
+    const msg = document.getElementById('msg-crear');
+    if (res.ok) {
+      msg.className = 'msg msg-ok'; msg.style.display = 'block';
+      msg.textContent = '✅ Usuario creado correctamente';
+      cargarUsuarios();
+      ['c-nombre','c-apellido','c-username','c-email','c-password'].forEach(id => document.getElementById(id).value = '');
+    } else {
+      const err = await res.json();
+      msg.className = 'msg msg-err'; msg.style.display = 'block';
+      msg.textContent = '❌ ' + (err.message || 'Error al crear usuario');
+    }
+  }
+
+  async function actualizarUsuario() {
+    const id = document.getElementById('u-id').value;
+    const body = {
+      nombre:   document.getElementById('u-nombre').value,
+      apellido: document.getElementById('u-apellido').value,
+      email:    document.getElementById('u-email').value
+    };
+    const res = await fetch(`/api/usuarios/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(body)
+    });
+    const msg = document.getElementById('msg-actualizar');
+    if (res.ok) {
+      msg.className = 'msg msg-ok'; msg.style.display = 'block';
+      msg.textContent = '✅ Usuario actualizado';
+      cargarUsuarios();
+    } else {
+      msg.className = 'msg msg-err'; msg.style.display = 'block';
+      msg.textContent = '❌ Error al actualizar';
+    }
+  }
+
+  async function inactivarUsuario() {
+    const id = document.getElementById('i-id').value;
+    const motivo = document.getElementById('i-motivo').value;
+    const res = await fetch(`/api/usuarios/${id}/inactivar`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ motivo })
+    });
+    const msg = document.getElementById('msg-inactivar');
+    if (res.ok) {
+      msg.className = 'msg msg-ok'; msg.style.display = 'block';
+      msg.textContent = '✅ Usuario inactivado';
+      cargarUsuarios();
+    } else {
+      msg.className = 'msg msg-err'; msg.style.display = 'block';
+      msg.textContent = '❌ Error al inactivar';
+    }
+  }
+
+  function fillActualizar(id, nombre, apellido, email) {
+    document.getElementById('u-id').value = id;
+    document.getElementById('u-nombre').value = nombre;
+    document.getElementById('u-apellido').value = apellido;
+    document.getElementById('u-email').value = email;
+    document.getElementById('msg-actualizar').style.display = 'none';
+  }
+
+  function fillInactivar(id) {
+    document.getElementById('i-id').value = id;
+    document.getElementById('i-motivo').value = '';
+    document.getElementById('msg-inactivar').style.display = 'none';
+  }
+
+  // Necesitamos GET /api/usuarios — lo agregamos al backend
+  login();
+</script>
+</body>
+</html>

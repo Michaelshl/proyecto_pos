@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 // Todas las rutas bajo /api/usuarios requieren JWT válido (configurado en SecurityConfig).
 @RestController
 @RequestMapping("/api/usuarios")
@@ -18,6 +20,11 @@ public class UsuarioController {
 
     public UsuarioController(UsuarioService usuarioService) {
         this.usuarioService = usuarioService;
+    }
+
+    @GetMapping
+    public ResponseEntity<List<UsuarioResponse>> listar() {
+        return ResponseEntity.ok(usuarioService.listar());
     }
 
     // Devuelve 201 CREATED (no 200) porque estamos creando un recurso nuevo.

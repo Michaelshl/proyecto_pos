@@ -25,6 +25,7 @@ public class Usuario {
     // Aquí se guarda el hash BCrypt, NUNCA la contraseña en texto plano
     private String password;
 
+    @Column(columnDefinition = "TINYINT(1)")
     private Boolean activo;
 
     // Relación muchos-a-uno: muchos usuarios pueden tener el mismo rol.

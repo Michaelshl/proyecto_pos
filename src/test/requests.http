@@ -1,0 +1,47 @@
+### Login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### Logout
+POST http://localhost:8080/api/auth/logout
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+### Crear usuario
+POST http://localhost:8080/api/usuarios
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "username": "jperez",
+  "email": "jperez@pos.com",
+  "password": "password123",
+  "rolId": 1
+}
+
+### Actualizar usuario
+PUT http://localhost:8080/api/usuarios/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nombre": "Juan",
+  "apellido": "Gomez",
+  "email": "jgomez@pos.com"
+}
+
+### Inactivar usuario
+PATCH http://localhost:8080/api/usuarios/2/inactivar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "motivo": "Solicitud del administrador"
+}

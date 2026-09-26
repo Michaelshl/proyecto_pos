@@ -4,6 +4,8 @@ import com.pos.dto.InactivarRequest;
 import com.pos.dto.UsuarioRequest;
 import com.pos.dto.UsuarioResponse;
 import com.pos.dto.UsuarioUpdateRequest;
+import java.util.List;
+import java.util.stream.Collectors;
 import com.pos.model.Rol;
 import com.pos.model.Usuario;
 import com.pos.repository.RolRepository;
@@ -26,6 +28,12 @@ public class UsuarioService {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    public List<UsuarioResponse> listar() {
+        return usuarioRepository.findAll().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     public UsuarioResponse crear(UsuarioRequest request) {
