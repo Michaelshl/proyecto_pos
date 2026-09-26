@@ -100,6 +100,35 @@ public class UsuarioService {
         return "Usuario inactivado exitosamente";
     }
 
+    public UsuarioResponse buscar(String username, String email) {
+        boolean hayUsername = username != null && !username.isBlank();
+        boolean hayEmail = email != null && !email.isBlank();
+        if (!hayUsername && !hayEmail) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Debe indicar username o email");
+        }
+
+        Usuario usuario = (hayUsername
+                ? usuarioRepository.findByUsername(username)
+                : usuarioRepository.findByEmail(email))
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Sin resultados para la búsqueda"));
+        return toResponse(usuario);
+    }
+
+    public UsuarioResponse asignarRol(Long id, Long rolId) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        Rol rol = rolRepository.findById(rolId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "El rol no existe"));
+
+        usuario.setRol(rol);
+        usuarioRepository.save(usuario);
+        return toResponse(usuario);
+    }
+
     private UsuarioResponse toResponse(Usuario usuario) {
         return UsuarioResponse.builder()
                 .id(usuario.getId())

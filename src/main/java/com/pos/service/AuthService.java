@@ -46,7 +46,8 @@ public class AuthService {
                     HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
 
-        String token = jwtUtil.generarToken(usuario.getUsername());
+        String rol = usuario.getRol() != null ? usuario.getRol().getNombre() : null;
+        String token = jwtUtil.generarToken(usuario.getUsername(), rol);
         return new LoginResponse(token);
     }
 

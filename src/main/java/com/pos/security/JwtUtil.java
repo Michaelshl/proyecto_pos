@@ -28,9 +28,10 @@ public class JwtUtil {
 
     // Crea un token JWT con el username como "subject" (identificador principal).
     // El token contiene: quién es (username), cuándo fue emitido, cuándo expira y la firma.
-    public String generarToken(String username) {
+    public String generarToken(String username, String rol) {
         return Jwts.builder()
                 .subject(username)
+                .claim("rol", rol)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getKey())
@@ -40,6 +41,10 @@ public class JwtUtil {
     // Extrae el username del payload sin consultar la base de datos.
     public String obtenerUsername(String token) {
         return getClaims(token).getSubject();
+    }
+
+    public String obtenerRol(String token) {
+        return getClaims(token).get("rol", String.class);
     }
 
     // Si parseSignedClaims lanza cualquier excepción (firma inválida, expirado, malformado)

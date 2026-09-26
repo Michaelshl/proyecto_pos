@@ -1,19 +1,20 @@
-### Login
-POST http://localhost:8080/api/auth/login
+### Login (guarda el token para las demás peticiones)
+POST http://localhost:8081/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "admin",
+  "username": "admin2",
   "password": "admin123"
 }
 
+> {% client.global.set("token", response.body.token); %}
+
 ### Logout
-POST http://localhost:8080/api/auth/logout
-Content-Type: application/json
+POST http://localhost:8081/api/auth/logout
 Authorization: Bearer {{token}}
 
 ### Crear usuario
-POST http://localhost:8080/api/usuarios
+POST http://localhost:8081/api/usuarios
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -23,11 +24,23 @@ Authorization: Bearer {{token}}
   "username": "jperez",
   "email": "jperez@pos.com",
   "password": "password123",
-  "rolId": 1
+  "rolId": 2
 }
 
+### Consultar usuario por username
+GET http://localhost:8081/api/usuarios/buscar?username=jperez
+Authorization: Bearer {{token}}
+
+### Consultar usuario por email
+GET http://localhost:8081/api/usuarios/buscar?email=jperez@pos.com
+Authorization: Bearer {{token}}
+
+### Listar usuarios
+GET http://localhost:8081/api/usuarios
+Authorization: Bearer {{token}}
+
 ### Actualizar usuario
-PUT http://localhost:8080/api/usuarios/2
+PUT http://localhost:8081/api/usuarios/2
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -37,11 +50,45 @@ Authorization: Bearer {{token}}
   "email": "jgomez@pos.com"
 }
 
+### Asignar rol a usuario
+PATCH http://localhost:8081/api/usuarios/2/rol
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "rolId": 2
+}
+
 ### Inactivar usuario
-PATCH http://localhost:8080/api/usuarios/2/inactivar
+PATCH http://localhost:8081/api/usuarios/2/inactivar
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
   "motivo": "Solicitud del administrador"
 }
+
+### Crear rol
+POST http://localhost:8081/api/roles
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nombre": "SUPERVISOR",
+  "descripcion": "Supervisa turnos",
+  "permisos": ["VENTAS_VER", "REPORTES_VER"]
+}
+
+### Crear categoría
+POST http://localhost:8081/api/categorias
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nombre": "Bebidas",
+  "descripcion": "Gaseosas y jugos"
+}
+
+### Listar categorías
+GET http://localhost:8081/api/categorias
+Authorization: Bearer {{token}}

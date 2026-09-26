@@ -1,0 +1,253 @@
+{
+  "info": {
+    "name": "POS API",
+    "description": "Colección del POS. Ejecutar primero 'Login admin': guarda el token en la variable {{token}} y el resto de peticiones lo usan.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081" },
+    { "key": "token", "value": "" },
+    { "key": "tokenCajero", "value": "" },
+    { "key": "usuarioId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Login admin (RF-001)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y token', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().token).to.be.a('string'); });",
+            "pm.collectionVariables.set('token', pm.response.json().token);"
+          ] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin2\",\n  \"password\": \"admin123\"\n}" }
+          }
+        },
+        {
+          "name": "Login con credenciales malas -> 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 con formato de error', () => { pm.response.to.have.status(401); const j = pm.response.json(); pm.expect(j).to.have.keys('timestamp','status','error','message','path'); });"
+          ] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin2\",\n  \"password\": \"incorrecta\"\n}" }
+          }
+        },
+        {
+          "name": "Sin token -> 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 sin token', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/categorias" }
+        },
+        {
+          "name": "Logout (RF-002)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/logout" }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Crear usuario (RF-004)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 o 400 si ya existe', () => pm.expect([201, 400]).to.include(pm.response.code));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/usuarios",
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Caja\",\n  \"apellido\": \"Uno\",\n  \"username\": \"cajero1\",\n  \"email\": \"cajero1@pos.com\",\n  \"password\": \"cajero123\",\n  \"rolId\": 1\n}" }
+          }
+        },
+        {
+          "name": "Consultar usuario por username (RF-006)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y guarda id', () => { pm.response.to.have.status(200); pm.collectionVariables.set('usuarioId', pm.response.json().id); });"
+          ] } }],
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/usuarios/buscar?username=cajero1", "host": ["{{baseUrl}}"], "path": ["api","usuarios","buscar"], "query": [{ "key": "username", "value": "cajero1" }] } }
+        },
+        {
+          "name": "Consultar usuario por email (RF-006)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/usuarios/buscar?email=cajero1@pos.com", "host": ["{{baseUrl}}"], "path": ["api","usuarios","buscar"], "query": [{ "key": "email", "value": "cajero1@pos.com" }] } }
+        },
+        {
+          "name": "Consultar usuario inexistente -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404 con mensaje', () => { pm.response.to.have.status(404); pm.expect(pm.response.json().message).to.include('Sin resultados'); });"
+          ] } }],
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/usuarios/buscar?username=noexiste", "host": ["{{baseUrl}}"], "path": ["api","usuarios","buscar"], "query": [{ "key": "username", "value": "noexiste" }] } }
+        },
+        {
+          "name": "Listar usuarios",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y arreglo', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.be.an('array'); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/usuarios" }
+        },
+        {
+          "name": "Actualizar usuario (RF-005)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Caja\",\n  \"apellido\": \"Uno\",\n  \"email\": \"cajero1@pos.com\"\n}" }
+          }
+        },
+        {
+          "name": "Asignar rol CAJERO (RF-009)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y rol CAJERO', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().rol).to.eql('CAJERO'); });"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}/rol",
+            "body": { "mode": "raw", "raw": "{\n  \"rolId\": 2\n}" }
+          }
+        },
+        {
+          "name": "Asignar rol inexistente -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}/rol",
+            "body": { "mode": "raw", "raw": "{\n  \"rolId\": 999\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Crear rol (RF-008)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 o 400 si ya existe', () => pm.expect([201, 400]).to.include(pm.response.code));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/roles",
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"SUPERVISOR\",\n  \"descripcion\": \"Supervisa turnos\",\n  \"permisos\": [\"VENTAS_VER\", \"REPORTES_VER\"]\n}" }
+          }
+        },
+        {
+          "name": "Crear rol sin permisos -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 de validación', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/roles",
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"VACIO\",\n  \"descripcion\": \"x\",\n  \"permisos\": []\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categorías",
+      "item": [
+        {
+          "name": "Crear categoría (RF-010)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 o 400 si ya existe', () => pm.expect([201, 400]).to.include(pm.response.code));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Bebidas\",\n  \"descripcion\": \"Gaseosas y jugos\"\n}" }
+          }
+        },
+        {
+          "name": "Listar categorías (RF-012)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con total', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.total).to.eql(j.categorias.length); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/categorias" }
+        }
+      ]
+    },
+    {
+      "name": "Control por rol (Cajero)",
+      "item": [
+        {
+          "name": "Login cajero1",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('tokenCajero', pm.response.json().token);"
+          ] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"cajero1\",\n  \"password\": \"cajero123\"\n}" }
+          }
+        },
+        {
+          "name": "Cajero lista categorías -> 200",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/categorias"
+          }
+        },
+        {
+          "name": "Cajero crea categoría -> 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403 con formato de error', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().status).to.eql(403); });"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Lacteos\",\n  \"descripcion\": \"x\"\n}" }
+          }
+        },
+        {
+          "name": "Cajero lista usuarios -> 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403', () => pm.response.to.have.status(403));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/usuarios"
+          }
+        }
+      ]
+    }
+  ]
+}

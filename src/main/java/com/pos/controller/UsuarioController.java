@@ -1,10 +1,12 @@
 package com.pos.controller;
 
+import com.pos.dto.AsignarRolRequest;
 import com.pos.dto.InactivarRequest;
 import com.pos.dto.UsuarioRequest;
 import com.pos.dto.UsuarioResponse;
 import com.pos.dto.UsuarioUpdateRequest;
 import com.pos.service.UsuarioService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,18 @@ public class UsuarioController {
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> listar() {
         return ResponseEntity.ok(usuarioService.listar());
+    }
+
+    @GetMapping("/buscar")
+    public ResponseEntity<UsuarioResponse> buscar(@RequestParam(required = false) String username,
+                                                  @RequestParam(required = false) String email) {
+        return ResponseEntity.ok(usuarioService.buscar(username, email));
+    }
+
+    @PatchMapping("/{id}/rol")
+    public ResponseEntity<UsuarioResponse> asignarRol(@PathVariable Long id,
+                                                      @Valid @RequestBody AsignarRolRequest request) {
+        return ResponseEntity.ok(usuarioService.asignarRol(id, request.getRolId()));
     }
 
     // Devuelve 201 CREATED (no 200) porque estamos creando un recurso nuevo.

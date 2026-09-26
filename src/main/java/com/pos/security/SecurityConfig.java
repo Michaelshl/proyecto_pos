@@ -6,10 +6,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -24,9 +26,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final RestSecurityHandlers securityHandlers;
 
-    public SecurityConfig(JwtUtil jwtUtil) {
+    public SecurityConfig(JwtUtil jwtUtil, RestSecurityHandlers securityHandlers) {
         this.jwtUtil = jwtUtil;
+        this.securityHandlers = securityHandlers;
     }
 
     @Bean
@@ -40,6 +44,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(securityHandlers)
+                .accessDeniedHandler(securityHandlers))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/",
@@ -51,6 +58,9 @@ public class SecurityConfig {
                     "/swagger-ui.html",
                     "/v3/api-docs/**"
                 ).permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categorias").hasAnyRole("ADMIN", "CAJERO")
+                .requestMatchers("/api/categorias/**").hasRole("ADMIN")
+                .requestMatchers("/api/usuarios/**", "/api/roles/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(
@@ -81,8 +91,12 @@ public class SecurityConfig {
                 String token = authHeader.substring(7);
                 if (jwtUtil.tokenValido(token)) {
                     String username = jwtUtil.obtenerUsername(token);
+                    String rol = jwtUtil.obtenerRol(token);
+                    List<SimpleGrantedAuthority> autoridades = rol == null
+                            ? List.of()
+                            : List.of(new SimpleGrantedAuthority("ROLE_" + rol.toUpperCase()));
                     UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(username, null, List.of());
+                        new UsernamePasswordAuthenticationToken(username, null, autoridades);
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             }
