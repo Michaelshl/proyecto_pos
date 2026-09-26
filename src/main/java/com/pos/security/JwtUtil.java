@@ -7,7 +7,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 // Un JWT tiene tres partes: header.payload.firma
 // La firma garantiza que nadie alteró el token sin conocer la clave secreta.
@@ -30,6 +32,7 @@ public class JwtUtil {
     // El token contiene: quién es (username), cuándo fue emitido, cuándo expira y la firma.
     public String generarToken(String username, String rol) {
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(username)
                 .claim("rol", rol)
                 .issuedAt(new Date())
@@ -41,6 +44,14 @@ public class JwtUtil {
     // Extrae el username del payload sin consultar la base de datos.
     public String obtenerUsername(String token) {
         return getClaims(token).getSubject();
+    }
+
+    public String obtenerJti(String token) {
+        return getClaims(token).getId();
+    }
+
+    public Instant obtenerExpiracion(String token) {
+        return getClaims(token).getExpiration().toInstant();
     }
 
     public String obtenerRol(String token) {

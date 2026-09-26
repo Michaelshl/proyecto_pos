@@ -12,6 +12,7 @@
     { "key": "baseUrl", "value": "http://localhost:8081" },
     { "key": "token", "value": "" },
     { "key": "tokenCajero", "value": "" },
+    { "key": "tokenTemp", "value": "" },
     { "key": "usuarioId", "value": "" }
   ],
   "item": [
@@ -51,13 +52,6 @@
             "pm.test('401 sin token', () => pm.response.to.have.status(401));"
           ] } }],
           "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/categorias" }
-        },
-        {
-          "name": "Logout (RF-002)",
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-            "pm.test('200', () => pm.response.to.have.status(200));"
-          ] } }],
-          "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/logout" }
         }
       ]
     },
@@ -246,6 +240,54 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/usuarios"
           }
+        }
+      ]
+    },
+    {
+      "name": "Logout y revocación de token (RF-002)",
+      "item": [
+        {
+          "name": "Login (token temporal)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('tokenTemp', pm.response.json().token);"
+          ] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin2\",\n  \"password\": \"admin123\"\n}" }
+          }
+        },
+        {
+          "name": "Logout -> 200",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenTemp}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/logout"
+          }
+        },
+        {
+          "name": "Usar el token ya cerrado -> 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401: el token quedó revocado', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenTemp}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/categorias"
+          }
+        },
+        {
+          "name": "Logout sin token -> 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": { "auth": { "type": "noauth" }, "method": "POST", "url": "{{baseUrl}}/api/auth/logout" }
         }
       ]
     }

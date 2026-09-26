@@ -16,13 +16,16 @@ public class AuthService {
     private final UsuarioRepository usuarioRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final TokenRevocadoService tokenRevocadoService;
 
     public AuthService(UsuarioRepository usuarioRepository,
                        BCryptPasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       TokenRevocadoService tokenRevocadoService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.tokenRevocadoService = tokenRevocadoService;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -51,9 +54,10 @@ public class AuthService {
         return new LoginResponse(token);
     }
 
-    // El logout en JWT stateless es del lado del cliente: simplemente descarta el token.
-    // El servidor no puede invalidar un JWT ya emitido (no hay sesión que destruir).
-    public String logout() {
+    // Un JWT no se puede "destruir", así que se guarda su identificador (jti) en una lista
+    // de revocación que el filtro consulta en cada petición.
+    public String logout(String token) {
+        tokenRevocadoService.revocar(token);
         return "Sesión cerrada exitosamente";
     }
 }

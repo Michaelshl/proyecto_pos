@@ -21,9 +21,8 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
-    // La ruta /api/auth/** está en la lista blanca de SecurityConfig, por eso no requiere token.
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestHeader("Authorization") String authHeader) {
-        return ResponseEntity.ok(authService.logout());
+        return ResponseEntity.ok(authService.logout(authHeader.substring(7)));
     }
 }

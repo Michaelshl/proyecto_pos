@@ -9,7 +9,7 @@ Content-Type: application/json
 
 > {% client.global.set("token", response.body.token); %}
 
-### Logout
+### Logout (revoca el token actual: después hay que volver a ejecutar el Login)
 POST http://localhost:8081/api/auth/logout
 Authorization: Bearer {{token}}
 

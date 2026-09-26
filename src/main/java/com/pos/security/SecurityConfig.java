@@ -18,6 +18,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.pos.service.TokenRevocadoService;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -27,10 +29,13 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final RestSecurityHandlers securityHandlers;
+    private final TokenRevocadoService tokenRevocadoService;
 
-    public SecurityConfig(JwtUtil jwtUtil, RestSecurityHandlers securityHandlers) {
+    public SecurityConfig(JwtUtil jwtUtil, RestSecurityHandlers securityHandlers,
+                          TokenRevocadoService tokenRevocadoService) {
         this.jwtUtil = jwtUtil;
         this.securityHandlers = securityHandlers;
+        this.tokenRevocadoService = tokenRevocadoService;
     }
 
     @Bean
@@ -53,18 +58,18 @@ public class SecurityConfig {
                     "/index.html",
                     "/*.js",
                     "/*.css",
-                    "/api/auth/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs/**"
                 ).permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categorias").hasAnyRole("ADMIN", "CAJERO")
                 .requestMatchers("/api/categorias/**").hasRole("ADMIN")
                 .requestMatchers("/api/usuarios/**", "/api/roles/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(
-                new JwtAuthFilter(jwtUtil),
+                new JwtAuthFilter(jwtUtil, tokenRevocadoService),
                 UsernamePasswordAuthenticationFilter.class
             );
 
@@ -74,9 +79,11 @@ public class SecurityConfig {
     static class JwtAuthFilter extends OncePerRequestFilter {
 
         private final JwtUtil jwtUtil;
+        private final TokenRevocadoService tokenRevocadoService;
 
-        JwtAuthFilter(JwtUtil jwtUtil) {
+        JwtAuthFilter(JwtUtil jwtUtil, TokenRevocadoService tokenRevocadoService) {
             this.jwtUtil = jwtUtil;
+            this.tokenRevocadoService = tokenRevocadoService;
         }
 
         @Override
@@ -89,7 +96,7 @@ public class SecurityConfig {
 
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
-                if (jwtUtil.tokenValido(token)) {
+                if (jwtUtil.tokenValido(token) && !estaRevocado(token)) {
                     String username = jwtUtil.obtenerUsername(token);
                     String rol = jwtUtil.obtenerRol(token);
                     List<SimpleGrantedAuthority> autoridades = rol == null
@@ -102,6 +109,12 @@ public class SecurityConfig {
             }
 
             filterChain.doFilter(request, response);
+        }
+
+        // Un token sin jti (emitido antes de la revocación) se trata como revocado.
+        private boolean estaRevocado(String token) {
+            String jti = jwtUtil.obtenerJti(token);
+            return jti == null || tokenRevocadoService.estaRevocado(jti);
         }
     }
 }
