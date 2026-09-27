@@ -31,9 +31,10 @@ Copiar `.env.example` como `.env` (en la raíz del proyecto) y completarlo:
 ```
 DB_PASSWORD=contraseña_de_tu_mysql
 JWT_SECRET=una_clave_aleatoria_de_minimo_32_caracteres
+ADMIN_PASSWORD=contraseña_del_primer_administrador
 ```
 
-Opcionalmente `DB_USER` (por defecto `root`) y `DB_URL` (por defecto `jdbc:mysql://localhost:3306/pos_db`). También se pueden definir como variables de entorno del sistema. El archivo `.env` no se sube a Git.
+Opcionalmente `DB_USER` (por defecto `root`), `DB_URL` (por defecto `jdbc:mysql://localhost:3306/pos_db`), `ADMIN_USERNAME` (por defecto `admin`) y `ADMIN_EMAIL` (por defecto `admin@pos.com`). También se pueden definir como variables de entorno del sistema. El archivo `.env` no se sube a Git.
 
 Si al arrancar aparece `Access denied for user 'root'`, falta el `.env` o no está en la carpeta desde donde se ejecuta la aplicación.
 
@@ -45,22 +46,15 @@ Si al arrancar aparece `Access denied for user 'root'`, falta el `.env` o no est
 
 Está lista cuando el log muestra `Started PosApplication`. Queda en `http://localhost:8081`.
 
-**4. Crear el primer administrador**
+**4. Iniciar sesión como administrador**
 
-Con la base vacía no existe ningún usuario, y crear usuarios exige ser ADMIN. Se inserta el primero por SQL (usuario `admin`, contraseña `admin123`; solo para desarrollo, cambiarla en cualquier otro entorno):
-
-```sql
-INSERT INTO usuarios (nombre, apellido, username, email, password, activo, rol_id)
-VALUES ('Admin', 'Sistema', 'admin', 'admin@pos.com',
-        '$2a$10$QgcKRvEzjLp27ppNJed0GObmWjmXnIT41WWnL2G2aZwYCjjzOlN.S', 1,
-        (SELECT id FROM roles WHERE nombre = 'ADMIN'));
-```
+Al arrancar con la base vacía, la aplicación crea sola el primer administrador: usuario `admin` (o `ADMIN_USERNAME`) y la contraseña de `ADMIN_PASSWORD`. Solo lo hace si no existe ningún usuario; si ya hay usuarios, o si `ADMIN_PASSWORD` no está definida, no crea nada (en ese caso el log lo avisa). La contraseña se guarda cifrada y no aparece en el log.
 
 Desde ahí, los demás usuarios se crean por la API.
 
 ## Cómo probar
 
-- **Postman:** importar `postman/POS_API.postman_collection.json` y ejecutar primero *Login admin*, que guarda el token para las demás peticiones. En la colección se usa `admin2`; si creaste `admin`, cambiar el usuario en esa petición.
+- **Postman:** importar `postman/POS_API.postman_collection.json` y ejecutar primero *Login admin*, que guarda el token para las demás peticiones. La colección trae `admin2` / `admin123` (datos de la base de desarrollo del autor); en una instalación nueva, cambiar en esa petición el usuario y la contraseña por los del primer administrador.
 - **IntelliJ:** abrir `src/test/requests.http` y ejecutar cada bloque (el de Login guarda el token).
 - **Swagger UI:** `http://localhost:8081/swagger-ui/index.html`. Hacer login, copiar el token y pegarlo en *Authorize*.
 
