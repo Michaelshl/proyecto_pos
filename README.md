@@ -109,4 +109,4 @@ postman/        Colección de Postman
 
 ## Repositorio
 
-Ramas: `main` (código base), `primer-entrega` (trabajo actual) y `explicacion` (con comentarios de estudio).
+Ramas: `main` (código base) y `primer-entrega` (trabajo del Sprint 1).
