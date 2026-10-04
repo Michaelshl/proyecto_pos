@@ -54,7 +54,7 @@ Desde ahí, los demás usuarios se crean por la API.
 
 ## Cómo probar
 
-- **Postman:** importar `postman/POS_API.postman_collection.json` y ejecutar primero *Login admin*, que guarda el token para las demás peticiones. La colección trae `admin2` / `admin123` (datos de la base de desarrollo del autor); en una instalación nueva, cambiar en esa petición el usuario y la contraseña por los del primer administrador.
+- **Postman:** importar `postman/POS_API.postman_collection.json` y ejecutar primero *Login admin*, que guarda el token para las demás peticiones. Antes de ejecutarla, completar las variables de colección `adminUser` y `adminPassword` con las del primer administrador (`ADMIN_USERNAME` / `ADMIN_PASSWORD` del `.env`).
 - **IntelliJ:** abrir `src/test/requests.http` y ejecutar cada bloque (el de Login guarda el token).
 - **Swagger UI:** `http://localhost:8081/swagger-ui/index.html`. Hacer login, copiar el token y pegarlo en *Authorize*.
 

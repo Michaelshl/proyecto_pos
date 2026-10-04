@@ -43,13 +43,13 @@ public class UsuarioController {
 
     // Devuelve 201 CREATED (no 200) porque estamos creando un recurso nuevo.
     @PostMapping
-    public ResponseEntity<UsuarioResponse> crear(@RequestBody UsuarioRequest request) {
+    public ResponseEntity<UsuarioResponse> crear(@Valid @RequestBody UsuarioRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.crear(request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioResponse> actualizar(@PathVariable Long id,
-                                                      @RequestBody UsuarioUpdateRequest request) {
+                                                      @Valid @RequestBody UsuarioUpdateRequest request) {
         return ResponseEntity.ok(usuarioService.actualizar(id, request));
     }
 

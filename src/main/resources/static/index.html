@@ -116,16 +116,22 @@
   let token = null;
 
   async function login() {
+    const username = prompt('Usuario administrador:');
+    const password = username ? prompt('Contraseña:') : null;
+    if (!username || !password) {
+      document.getElementById('status').textContent = '❌ Sin sesión';
+      return;
+    }
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin2', password: 'admin123' })
+        body: JSON.stringify({ username, password })
       });
       if (!res.ok) throw new Error('Login fallido');
       const data = await res.json();
       token = data.token;
-      document.getElementById('status').textContent = '✅ Conectado como admin2';
+      document.getElementById('status').textContent = '✅ Conectado como ' + username;
       cargarUsuarios();
     } catch (e) {
       document.getElementById('status').textContent = '❌ Error de conexión';

@@ -18,6 +18,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.pos.repository.UsuarioRepository;
 import com.pos.service.TokenRevocadoService;
 
 import java.io.IOException;
@@ -30,12 +31,15 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final RestSecurityHandlers securityHandlers;
     private final TokenRevocadoService tokenRevocadoService;
+    private final UsuarioRepository usuarioRepository;
 
     public SecurityConfig(JwtUtil jwtUtil, RestSecurityHandlers securityHandlers,
-                          TokenRevocadoService tokenRevocadoService) {
+                          TokenRevocadoService tokenRevocadoService,
+                          UsuarioRepository usuarioRepository) {
         this.jwtUtil = jwtUtil;
         this.securityHandlers = securityHandlers;
         this.tokenRevocadoService = tokenRevocadoService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Bean
@@ -69,7 +73,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .addFilterBefore(
-                new JwtAuthFilter(jwtUtil, tokenRevocadoService),
+                new JwtAuthFilter(jwtUtil, tokenRevocadoService, usuarioRepository),
                 UsernamePasswordAuthenticationFilter.class
             );
 
@@ -80,10 +84,13 @@ public class SecurityConfig {
 
         private final JwtUtil jwtUtil;
         private final TokenRevocadoService tokenRevocadoService;
+        private final UsuarioRepository usuarioRepository;
 
-        JwtAuthFilter(JwtUtil jwtUtil, TokenRevocadoService tokenRevocadoService) {
+        JwtAuthFilter(JwtUtil jwtUtil, TokenRevocadoService tokenRevocadoService,
+                      UsuarioRepository usuarioRepository) {
             this.jwtUtil = jwtUtil;
             this.tokenRevocadoService = tokenRevocadoService;
+            this.usuarioRepository = usuarioRepository;
         }
 
         @Override
@@ -97,14 +104,19 @@ public class SecurityConfig {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
                 if (jwtUtil.tokenValido(token) && !estaRevocado(token)) {
-                    String username = jwtUtil.obtenerUsername(token);
-                    String rol = jwtUtil.obtenerRol(token);
-                    List<SimpleGrantedAuthority> autoridades = rol == null
-                            ? List.of()
-                            : List.of(new SimpleGrantedAuthority("ROLE_" + rol.toUpperCase()));
-                    UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(username, null, autoridades);
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    // El estado y el rol se leen de la BD, no del token: así inactivar
+                    // a un usuario o cambiarle el rol surte efecto de inmediato.
+                    usuarioRepository.findByUsername(jwtUtil.obtenerUsername(token))
+                            .filter(u -> Boolean.TRUE.equals(u.getActivo()))
+                            .ifPresent(u -> {
+                                List<SimpleGrantedAuthority> autoridades = u.getRol() == null
+                                        ? List.of()
+                                        : List.of(new SimpleGrantedAuthority(
+                                                "ROLE_" + u.getRol().getNombre().toUpperCase()));
+                                SecurityContextHolder.getContext().setAuthentication(
+                                        new UsernamePasswordAuthenticationToken(
+                                                u.getUsername(), null, autoridades));
+                            });
                 }
             }
 

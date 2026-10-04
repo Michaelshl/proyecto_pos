@@ -73,6 +73,12 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
+        if (!request.getEmail().equals(usuario.getEmail())
+                && usuarioRepository.existsByEmail(request.getEmail())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "El email ya está registrado");
+        }
+
         // Solo actualizamos los campos permitidos (nombre, apellido, email).
         // No tocamos username, password ni rol porque tienen restricciones explicadas en el DTO.
         usuario.setNombre(request.getNombre());
@@ -137,7 +143,7 @@ public class UsuarioService {
                 .username(usuario.getUsername())
                 .email(usuario.getEmail())
                 .activo(usuario.getActivo())
-                .rol(usuario.getRol().getNombre())
+                .rol(usuario.getRol() != null ? usuario.getRol().getNombre() : null)
                 .build();
     }
 }

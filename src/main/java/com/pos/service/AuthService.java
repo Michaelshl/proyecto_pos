@@ -13,6 +13,10 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AuthService {
 
+    // Hash BCrypt válido de una clave aleatoria; solo sirve para igualar tiempos de respuesta.
+    private static final String HASH_FALSO =
+            "$2a$10$7EqJtq98hPqEX7fNZaFWoOhi5BUk0IDXnS4bQ6xS7mQ0pQ5vC1Wku";
+
     private final UsuarioRepository usuarioRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -31,22 +35,24 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         // Usamos UNAUTHORIZED (no NOT_FOUND) deliberadamente para no revelar
         // si el username existe o no (evita ataques de enumeración de usuarios).
-        Usuario usuario = usuarioRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "Credenciales inválidas"));
+        Usuario usuario = usuarioRepository.findByUsername(request.getUsername()).orElse(null);
 
-        // Se distingue del 401 para que el cliente pueda mostrar un mensaje diferente
-        // ("cuenta bloqueada" vs "credenciales incorrectas").
-        if (!usuario.getActivo()) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Usuario inactivo");
-        }
+        // Si el usuario no existe se compara contra un hash falso, para que la
+        // respuesta tarde lo mismo y no se pueda enumerar usuarios por tiempo.
+        String hash = usuario != null ? usuario.getPassword() : HASH_FALSO;
 
         // BCrypt.matches() compara el texto plano con el hash guardado en BD.
         // Nunca desencriptamos la contraseña — BCrypt es un hash unidireccional.
-        if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
+        boolean claveCorrecta = passwordEncoder.matches(request.getPassword(), hash);
+        if (usuario == null || !claveCorrecta) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
+        }
+
+        // Solo se revela que la cuenta está inactiva cuando la contraseña es correcta.
+        if (!Boolean.TRUE.equals(usuario.getActivo())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Usuario inactivo");
         }
 
         String rol = usuario.getRol() != null ? usuario.getRol().getNombre() : null;

@@ -6,7 +6,9 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
@@ -25,7 +27,15 @@ public class JwtUtil {
     // Convierte la cadena "secret" en una clave criptográfica HMAC-SHA
     // HMAC-SHA es el algoritmo que firma el token (verifica integridad)
     private SecretKey getKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    // Falla al arrancar (y no en el primer login) si el secreto es demasiado corto para HS256.
+    @PostConstruct
+    void validarSecreto() {
+        if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("jwt.secret debe tener al menos 32 caracteres");
+        }
     }
 
     // Crea un token JWT con el username como "subject" (identificador principal).

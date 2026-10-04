@@ -10,6 +10,8 @@
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8081" },
+    { "key": "adminUser", "value": "" },
+    { "key": "adminPassword", "value": "" },
     { "key": "token", "value": "" },
     { "key": "tokenCajero", "value": "" },
     { "key": "tokenTemp", "value": "" },
@@ -30,7 +32,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/auth/login",
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin2\",\n  \"password\": \"admin123\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{adminUser}}\",\n  \"password\": \"{{adminPassword}}\"\n}" }
           }
         },
         {
@@ -43,7 +45,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/auth/login",
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin2\",\n  \"password\": \"incorrecta\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{adminUser}}\",\n  \"password\": \"incorrecta\"\n}" }
           }
         },
         {
@@ -257,7 +259,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/auth/login",
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin2\",\n  \"password\": \"admin123\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{adminUser}}\",\n  \"password\": \"{{adminPassword}}\"\n}" }
           }
         },
         {
