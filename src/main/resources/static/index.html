@@ -132,9 +132,22 @@
       const data = await res.json();
       token = data.token;
       document.getElementById('status').textContent = '✅ Conectado como ' + username;
+      cargarRoles();
       cargarUsuarios();
     } catch (e) {
       document.getElementById('status').textContent = '❌ Error de conexión';
+    }
+  }
+
+  async function cargarRoles() {
+    const select = document.getElementById('c-rol');
+    try {
+      const res = await fetch('/api/roles', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (!res.ok) return;
+      const roles = await res.json();
+      select.innerHTML = roles.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
+    } catch (e) {
+      // se conserva la opción por defecto del select
     }
   }
 

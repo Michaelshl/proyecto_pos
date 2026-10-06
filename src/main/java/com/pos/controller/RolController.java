@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/roles")
 public class RolController {
@@ -16,6 +18,11 @@ public class RolController {
 
     public RolController(RolService rolService) {
         this.rolService = rolService;
+    }
+
+    @GetMapping
+    public ResponseEntity<List<RolResponse>> listar() {
+        return ResponseEntity.ok(rolService.listar());
     }
 
     @PostMapping

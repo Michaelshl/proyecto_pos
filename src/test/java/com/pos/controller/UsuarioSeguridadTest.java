@@ -39,7 +39,19 @@ class UsuarioSeguridadTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void crearUsuarioSinCamposObligatoriosDa400() throws Exception {
+    void adminPuedeListarRoles() throws Exception {
+        mockMvc.perform(get("/api/roles")).andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAJERO")
+    void cajeroNoPuedeListarRoles() throws Exception {
+        mockMvc.perform(get("/api/roles")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void crearUsuarioSinCamposObligatoriosDa400()throws Exception {
         mockMvc.perform(post("/api/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"x\",\"email\":\"no-es-email\"}"))

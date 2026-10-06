@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class RolService {
@@ -31,6 +33,16 @@ public class RolService {
         rol.setPermisos(new ArrayList<>(request.getPermisos()));
         rolRepository.save(rol);
 
+        return toResponse(rol);
+    }
+
+    public List<RolResponse> listar() {
+        return rolRepository.findAll().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    private RolResponse toResponse(Rol rol) {
         return RolResponse.builder()
                 .id(rol.getId())
                 .nombre(rol.getNombre())
