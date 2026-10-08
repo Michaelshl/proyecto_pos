@@ -2,7 +2,6 @@ package com.pos.rol;
 
 import com.pos.rol.dto.RolRequest;
 import com.pos.rol.dto.RolResponse;
-import com.pos.rol.RolService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

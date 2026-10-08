@@ -6,7 +6,6 @@ import com.pos.usuario.dto.InactivarRequest;
 import com.pos.usuario.dto.UsuarioRequest;
 import com.pos.usuario.dto.UsuarioResponse;
 import com.pos.usuario.dto.UsuarioUpdateRequest;
-import com.pos.usuario.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

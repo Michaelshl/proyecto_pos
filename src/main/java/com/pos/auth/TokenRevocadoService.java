@@ -1,7 +1,5 @@
 package com.pos.auth;
 
-import com.pos.auth.TokenRevocado;
-import com.pos.auth.TokenRevocadoRepository;
 import com.pos.security.JwtUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

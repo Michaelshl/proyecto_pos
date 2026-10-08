@@ -1,6 +1,5 @@
 package com.pos.usuario;
 
-import com.pos.usuario.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

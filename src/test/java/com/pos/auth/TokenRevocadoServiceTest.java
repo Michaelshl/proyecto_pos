@@ -1,7 +1,5 @@
 package com.pos.auth;
 
-import com.pos.auth.TokenRevocado;
-import com.pos.auth.TokenRevocadoRepository;
 import com.pos.security.JwtUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

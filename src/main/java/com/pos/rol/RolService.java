@@ -2,8 +2,6 @@ package com.pos.rol;
 
 import com.pos.rol.dto.RolRequest;
 import com.pos.rol.dto.RolResponse;
-import com.pos.rol.Rol;
-import com.pos.rol.RolRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;

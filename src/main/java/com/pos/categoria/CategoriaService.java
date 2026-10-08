@@ -3,8 +3,6 @@ package com.pos.categoria;
 import com.pos.categoria.dto.CategoriaListaResponse;
 import com.pos.categoria.dto.CategoriaRequest;
 import com.pos.categoria.dto.CategoriaResponse;
-import com.pos.categoria.Categoria;
-import com.pos.categoria.CategoriaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;

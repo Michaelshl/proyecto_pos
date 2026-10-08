@@ -2,7 +2,6 @@ package com.pos.auth;
 
 import com.pos.auth.dto.LoginRequest;
 import com.pos.auth.dto.LoginResponse;
-import com.pos.auth.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

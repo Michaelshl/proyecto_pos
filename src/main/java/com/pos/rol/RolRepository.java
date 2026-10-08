@@ -1,6 +1,5 @@
 package com.pos.rol;
 
-import com.pos.rol.Rol;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

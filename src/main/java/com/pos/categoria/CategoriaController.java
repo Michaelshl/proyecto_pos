@@ -3,7 +3,6 @@ package com.pos.categoria;
 import com.pos.categoria.dto.CategoriaListaResponse;
 import com.pos.categoria.dto.CategoriaRequest;
 import com.pos.categoria.dto.CategoriaResponse;
-import com.pos.categoria.CategoriaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
