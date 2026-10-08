@@ -103,6 +103,18 @@ class AuthServiceTest {
     }
 
     @Test
+    void usuarioInactivoVeElMotivoAlIniciarSesion() {
+        usuario.setActivo(false);
+        usuario.setMotivoInactivacion("Renuncia");
+        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario));
+
+        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+                () -> authService.login(request("ana", "clave-correcta")));
+        assertEquals(HttpStatus.FORBIDDEN, estadoDe(e));
+        assertEquals("Usuario inactivo. Motivo: Renuncia", e.getReason());
+    }
+
+    @Test
     void estadoActivoNuloSeTrataComoInactivo() {
         usuario.setActivo(null);
         when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario));

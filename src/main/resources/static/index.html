@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>POS - Gestión de Usuarios</title>
+  <title>POS - Nombre por confirmar</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f0f2f5; }
@@ -46,6 +46,10 @@
     .badge-active   { background: #d4edda; color: #155724; }
     .badge-inactive { background: #f8d7da; color: #721c24; }
 
+    .login-box { max-width: 380px; margin: 80px auto; }
+    .login-box input { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    .login-box button { width: 100%; }
+    .btn-salir { background: transparent; color: white; border: 1px solid white; padding: 6px 14px; margin-left: 12px; }
     .msg { padding: 10px 16px; border-radius: 6px; margin-top: 12px; font-size: 14px; display: none; }
     .msg-ok  { background: #d4edda; color: #155724; }
     .msg-err { background: #f8d7da; color: #721c24; }
@@ -54,14 +58,29 @@
 <body>
 
 <header>
-  <h1>🛒 POS — Gestión de Usuarios</h1>
-  <span id="status">Conectando...</span>
+  <h1>🛒 POS - Nombre por confirmar</h1>
+  <span>
+    <span id="status"></span>
+    <button id="btn-salir" class="btn-salir" style="display:none" onclick="logout()">Cerrar sesión</button>
+  </span>
 </header>
 
-<div class="container">
+<!-- VISTA DE LOGIN (RF-001) -->
+<div id="vista-login" class="container">
+  <div class="card login-box">
+    <h2>Iniciar sesión</h2>
+    <input id="l-username" placeholder="Usuario" autocomplete="username" />
+    <input id="l-password" placeholder="Contraseña" type="password" autocomplete="current-password" />
+    <button class="btn-primary" onclick="login()">Entrar</button>
+    <div id="msg-login" class="msg"></div>
+  </div>
+</div>
+
+<!-- VISTA PRINCIPAL: solo visible con sesión iniciada -->
+<div id="vista-app" class="container" style="display:none">
 
   <!-- CREAR USUARIO -->
-  <div class="card">
+  <div class="card solo-admin">
     <h2>Crear Usuario</h2>
     <div class="form-row">
       <input id="c-nombre"   placeholder="Nombre" />
@@ -78,7 +97,7 @@
   </div>
 
   <!-- TABLA DE USUARIOS -->
-  <div class="card">
+  <div class="card solo-admin">
     <h2>Usuarios Registrados <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarUsuarios()">↺ Recargar</button></h2>
     <table>
       <thead><tr><th>ID</th><th>Nombre</th><th>Username</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
@@ -87,7 +106,7 @@
   </div>
 
   <!-- ACTUALIZAR USUARIO -->
-  <div class="card">
+  <div class="card solo-admin">
     <h2>Actualizar Usuario</h2>
     <div class="form-row">
       <input id="u-id"       placeholder="ID del usuario" type="number" style="max-width:100px" />
@@ -100,7 +119,7 @@
   </div>
 
   <!-- INACTIVAR USUARIO -->
-  <div class="card">
+  <div class="card solo-admin">
     <h2>Inactivar Usuario</h2>
     <div class="form-row">
       <input id="i-id"     placeholder="ID del usuario" type="number" style="max-width:100px" />
@@ -110,16 +129,69 @@
     <div id="msg-inactivar" class="msg"></div>
   </div>
 
+  <!-- BUSCAR USUARIO (RF-006) -->
+  <div class="card solo-admin">
+    <h2>Buscar Usuario</h2>
+    <div class="form-row">
+      <input id="b-username" placeholder="Username" />
+      <input id="b-email"    placeholder="o Email" type="email" />
+    </div>
+    <button class="btn-primary" onclick="buscarUsuario()">Buscar</button>
+    <div id="msg-buscar" class="msg"></div>
+  </div>
+
+  <!-- ASIGNAR ROL (RF-009) -->
+  <div class="card solo-admin">
+    <h2>Asignar Rol a un Usuario</h2>
+    <div class="form-row">
+      <input id="a-id" placeholder="ID del usuario" type="number" style="max-width:100px" />
+      <select id="a-rol"><option value="1">ADMIN</option></select>
+    </div>
+    <button class="btn-warning" onclick="asignarRol()">Asignar rol</button>
+    <div id="msg-asignar" class="msg"></div>
+  </div>
+
+  <!-- CREAR ROL (RF-008) -->
+  <div class="card solo-admin">
+    <h2>Crear Rol</h2>
+    <div class="form-row">
+      <input id="r-nombre"   placeholder="Nombre del rol" />
+      <input id="r-desc"     placeholder="Descripción" />
+      <input id="r-permisos" placeholder="Permisos separados por coma" />
+    </div>
+    <button class="btn-primary" onclick="crearRol()">Crear Rol</button>
+    <div id="msg-rol" class="msg"></div>
+  </div>
+
+  <!-- CATEGORÍAS (RF-010 y RF-012) -->
+  <div class="card">
+    <h2>Categorías <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarCategorias()">↺ Listar</button></h2>
+    <div class="solo-admin">
+      <div class="form-row">
+        <input id="k-nombre" placeholder="Nombre de la categoría" />
+        <input id="k-desc"   placeholder="Descripción" />
+      </div>
+      <button class="btn-primary" onclick="crearCategoria()">Crear Categoría</button>
+    </div>
+    <div id="msg-categoria" class="msg"></div>
+    <table style="margin-top:16px">
+      <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th></tr></thead>
+      <tbody id="tabla-categorias"><tr><td colspan="3" style="text-align:center;color:#999">Pulse Listar</td></tr></tbody>
+    </table>
+  </div>
+
+
 </div>
 
 <script>
   let token = null;
 
   async function login() {
-    const username = prompt('Usuario administrador:');
-    const password = username ? prompt('Contraseña:') : null;
+    const username = document.getElementById('l-username').value.trim();
+    const password = document.getElementById('l-password').value;
+    const msg = document.getElementById('msg-login');
     if (!username || !password) {
-      document.getElementById('status').textContent = '❌ Sin sesión';
+      mostrar('msg-login', false, 'Ingrese usuario y contraseña');
       return;
     }
     try {
@@ -128,15 +200,49 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-      if (!res.ok) throw new Error('Login fallido');
-      const data = await res.json();
-      token = data.token;
-      document.getElementById('status').textContent = '✅ Conectado como ' + username;
-      cargarRoles();
-      cargarUsuarios();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        mostrar('msg-login', false, err.message || 'Login fallido');
+        return;
+      }
+      token = (await res.json()).token;
+      msg.style.display = 'none';
+      document.getElementById('l-password').value = '';
+      const rol = rolDelToken(token);
+      document.getElementById('status').textContent = 'Conectado como ' + username + (rol ? ' (' + rol + ')' : '');
+      aplicarRol(rol);
+      mostrarVista(true);
+      if (rol === 'ADMIN') {
+        cargarRoles();
+        cargarUsuarios();
+      }
+      cargarCategorias();
     } catch (e) {
-      document.getElementById('status').textContent = '❌ Error de conexión';
+      mostrar('msg-login', false, 'No se pudo conectar con el servidor');
     }
+  }
+
+  // Solo para decidir qué se muestra: la autorización real la hace el servidor.
+  function rolDelToken(t) {
+    try {
+      const b64 = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      return JSON.parse(atob(b64)).rol || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function aplicarRol(rol) {
+    document.querySelectorAll('.solo-admin').forEach(el => {
+      el.style.display = rol === 'ADMIN' ? '' : 'none';
+    });
+  }
+
+  function mostrarVista(conSesion) {
+    document.getElementById('vista-login').style.display = conSesion ? 'none' : 'block';
+    document.getElementById('vista-app').style.display = conSesion ? 'block' : 'none';
+    document.getElementById('btn-salir').style.display = conSesion ? 'inline-block' : 'none';
+    if (!conSesion) document.getElementById('status').textContent = '';
   }
 
   async function cargarRoles() {
@@ -145,7 +251,9 @@
       const res = await fetch('/api/roles', { headers: { 'Authorization': 'Bearer ' + token } });
       if (!res.ok) return;
       const roles = await res.json();
-      select.innerHTML = roles.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
+      const opciones = roles.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
+      select.innerHTML = opciones;
+      document.getElementById('a-rol').innerHTML = opciones;
     } catch (e) {
       // se conserva la opción por defecto del select
     }
@@ -267,8 +375,122 @@
     document.getElementById('msg-inactivar').style.display = 'none';
   }
 
-  // Necesitamos GET /api/usuarios — lo agregamos al backend
-  login();
+  function mostrar(idMsg, ok, texto) {
+    const msg = document.getElementById(idMsg);
+    msg.className = 'msg ' + (ok ? 'msg-ok' : 'msg-err');
+    msg.style.display = 'block';
+    msg.textContent = (ok ? '✅ ' : '❌ ') + texto;
+  }
+
+  function esc(texto) {
+    const d = document.createElement('div');
+    d.textContent = texto == null ? '' : texto;
+    return d.innerHTML;
+  }
+
+  async function llamar(metodo, url, cuerpo, tokenUsado = token) {
+    const headers = { 'Authorization': 'Bearer ' + tokenUsado };
+    if (cuerpo !== undefined) headers['Content-Type'] = 'application/json';
+    const res = await fetch(url, {
+      method: metodo,
+      headers,
+      body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined
+    });
+    const texto = await res.text();
+    let datos = null;
+    try { datos = texto ? JSON.parse(texto) : null; } catch (e) { datos = texto; }
+    return { ok: res.ok, status: res.status, datos };
+  }
+
+  function detalle(r, porDefecto) {
+    return (r.datos && r.datos.message) ? r.datos.message : porDefecto;
+  }
+
+  async function buscarUsuario() {
+    const username = document.getElementById('b-username').value.trim();
+    const email = document.getElementById('b-email').value.trim();
+    const param = username ? 'username=' + encodeURIComponent(username)
+                           : 'email=' + encodeURIComponent(email);
+    const r = await llamar('GET', '/api/usuarios/buscar?' + param);
+    if (r.ok) {
+      const u = r.datos;
+      mostrar('msg-buscar', true, `ID ${u.id} · ${u.nombre} ${u.apellido} · ${u.username} · ${u.email} · ${u.rol} · ${u.activo ? 'Activo' : 'Inactivo'}`);
+    } else {
+      mostrar('msg-buscar', false, detalle(r, 'Error al buscar'));
+    }
+  }
+
+  async function asignarRol() {
+    const id = document.getElementById('a-id').value;
+    const rolId = parseInt(document.getElementById('a-rol').value);
+    const r = await llamar('PATCH', `/api/usuarios/${id}/rol`, { rolId });
+    if (r.ok) {
+      mostrar('msg-asignar', true, `Rol de ${r.datos.username} ahora es ${r.datos.rol}`);
+      cargarUsuarios();
+    } else {
+      mostrar('msg-asignar', false, detalle(r, 'Error al asignar rol'));
+    }
+  }
+
+  async function crearRol() {
+    const permisos = document.getElementById('r-permisos').value
+      .split(',').map(p => p.trim()).filter(p => p);
+    const r = await llamar('POST', '/api/roles', {
+      nombre: document.getElementById('r-nombre').value,
+      descripcion: document.getElementById('r-desc').value,
+      permisos
+    });
+    if (r.ok) {
+      mostrar('msg-rol', true, `Rol ${r.datos.nombre} creado`);
+      ['r-nombre','r-desc','r-permisos'].forEach(id => document.getElementById(id).value = '');
+      cargarRoles();
+    } else {
+      mostrar('msg-rol', false, detalle(r, 'Error al crear rol'));
+    }
+  }
+
+  async function crearCategoria() {
+    const r = await llamar('POST', '/api/categorias', {
+      nombre: document.getElementById('k-nombre').value,
+      descripcion: document.getElementById('k-desc').value
+    });
+    if (r.ok) {
+      mostrar('msg-categoria', true, `Categoría ${r.datos.nombre} creada`);
+      ['k-nombre','k-desc'].forEach(id => document.getElementById(id).value = '');
+      cargarCategorias();
+    } else {
+      mostrar('msg-categoria', false, detalle(r, 'Error al crear categoría'));
+    }
+  }
+
+  async function cargarCategorias() {
+    const tbody = document.getElementById('tabla-categorias');
+    const r = await llamar('GET', '/api/categorias');
+    if (!r.ok) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999">No se pudo listar</td></tr>';
+      mostrar('msg-categoria', false, detalle(r, 'Error al listar categorías'));
+      return;
+    }
+    if (r.datos.categorias.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999">Sin categorías</td></tr>';
+      return;
+    }
+    tbody.innerHTML = r.datos.categorias.map(c =>
+      `<tr><td>${c.id}</td><td>${esc(c.nombre)}</td><td>${esc(c.descripcion)}</td></tr>`).join('');
+  }
+
+  async function logout() {
+    await llamar('POST', '/api/auth/logout');
+    token = null;
+    mostrarVista(false);
+    document.getElementById('msg-login').style.display = 'none';
+    document.getElementById('l-username').focus();
+  }
+
+  document.getElementById('l-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
 </script>
 </body>
 </html>

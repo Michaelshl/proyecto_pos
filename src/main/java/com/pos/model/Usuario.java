@@ -28,6 +28,10 @@ public class Usuario {
     @Column(columnDefinition = "TINYINT(1)")
     private Boolean activo;
 
+    // Se guarda al inactivar al usuario y se muestra cuando intenta iniciar sesión.
+    @Column(length = 500)
+    private String motivoInactivacion;
+
     // Relación muchos-a-uno: muchos usuarios pueden tener el mismo rol.
     // @JoinColumn indica que en la tabla "usuarios" habrá una columna "rol_id"
     // que es clave foránea hacia la tabla "roles"

@@ -95,6 +95,12 @@ public class UsuarioService {
                     HttpStatus.BAD_REQUEST, "El motivo es obligatorio");
         }
 
+        String motivo = request.getMotivo().trim();
+        if (motivo.length() > 500) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "El motivo no puede superar 500 caracteres");
+        }
+
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -102,6 +108,7 @@ public class UsuarioService {
         // Soft delete: no eliminamos el registro, solo lo marcamos como inactivo.
         // Esto preserva el historial y evita problemas de integridad referencial.
         usuario.setActivo(false);
+        usuario.setMotivoInactivacion(motivo);
         usuarioRepository.save(usuario);
         return "Usuario inactivado exitosamente";
     }

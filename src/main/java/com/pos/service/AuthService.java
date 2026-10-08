@@ -51,8 +51,12 @@ public class AuthService {
 
         // Solo se revela que la cuenta está inactiva cuando la contraseña es correcta.
         if (!Boolean.TRUE.equals(usuario.getActivo())) {
+            String motivo = usuario.getMotivoInactivacion();
             throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Usuario inactivo");
+                    HttpStatus.FORBIDDEN,
+                    motivo == null || motivo.isBlank()
+                            ? "Usuario inactivo"
+                            : "Usuario inactivo. Motivo: " + motivo);
         }
 
         String rol = usuario.getRol() != null ? usuario.getRol().getNombre() : null;
