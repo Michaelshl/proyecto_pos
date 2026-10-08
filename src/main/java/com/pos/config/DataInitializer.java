@@ -1,9 +1,9 @@
 package com.pos.config;
 
-import com.pos.model.Rol;
-import com.pos.model.Usuario;
-import com.pos.repository.RolRepository;
-import com.pos.repository.UsuarioRepository;
+import com.pos.rol.Rol;
+import com.pos.usuario.Usuario;
+import com.pos.rol.RolRepository;
+import com.pos.usuario.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

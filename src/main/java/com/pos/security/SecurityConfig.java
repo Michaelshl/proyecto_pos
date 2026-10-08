@@ -18,8 +18,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.pos.repository.UsuarioRepository;
-import com.pos.service.TokenRevocadoService;
+import com.pos.usuario.UsuarioRepository;
+import com.pos.auth.TokenRevocadoService;
 
 import java.io.IOException;
 import java.util.List;

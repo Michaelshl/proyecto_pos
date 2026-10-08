@@ -1,9 +1,9 @@
 package com.pos.security;
 
-import com.pos.model.Rol;
-import com.pos.model.Usuario;
-import com.pos.repository.UsuarioRepository;
-import com.pos.service.TokenRevocadoService;
+import com.pos.rol.Rol;
+import com.pos.usuario.Usuario;
+import com.pos.usuario.UsuarioRepository;
+import com.pos.auth.TokenRevocadoService;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
