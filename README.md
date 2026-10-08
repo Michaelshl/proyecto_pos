@@ -98,16 +98,30 @@ Un token ausente, inválido, vencido o revocado responde 401; un rol sin permiso
 ```
 src/main/java/com/pos/
   usuario/      Usuarios (entidad, repositorio, servicio, controlador y dto/)
-  auth/         Login, logout y tokens revocados
+  auth/         Login y logout
   rol/          Roles y sus permisos
   categoria/    Categorías
-  security/     JWT, filtro y reglas por rol
+  security/     JWT, filtro, reglas por rol y tokens revocados
   exception/    Manejo global de errores
   config/       Carga inicial de roles y del primer administrador
 postman/        Colección de Postman
 ```
 
-Cada módulo agrupa su entidad, repositorio, servicio, controlador y DTO.
+## Arquitectura
+
+Monolito modular con **paquetes por funcionalidad**: cada módulo (`usuario`, `auth`, `rol`, `categoria`) agrupa su entidad, repositorio, servicio, controlador y `dto/`, y dentro sigue el orden controlador → servicio → repositorio. Lo transversal (`security`, `config`, `exception`) va aparte.
+
+Regla de dependencias, sin ciclos (la flecha significa "usa a"):
+
+```
+auth ──► security ──► usuario ──► rol
+  └──────────────────►┘
+config ──► usuario, rol          categoria (independiente)
+```
+
+Un módulo nuevo (por ejemplo `producto`) solo debe depender de otros módulos "hacia abajo": `producto ──► categoria`. Nada puede depender de `auth`.
+
+La interfaz (`index.html`) también se divide por módulos: una pestaña por cada uno (Usuarios con subpestañas, Roles, Categorías) y las de administrador se ocultan al cajero.
 
 ## Llaves primarias
 

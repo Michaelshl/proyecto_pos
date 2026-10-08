@@ -1,4 +1,4 @@
-package com.pos.auth;
+package com.pos.security;
 
 import com.pos.security.JwtUtil;
 import org.springframework.stereotype.Service;

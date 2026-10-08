@@ -5,6 +5,7 @@ import com.pos.auth.dto.LoginResponse;
 import com.pos.usuario.Usuario;
 import com.pos.usuario.UsuarioRepository;
 import com.pos.security.JwtUtil;
+import com.pos.security.TokenRevocadoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;

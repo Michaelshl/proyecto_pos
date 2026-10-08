@@ -1,4 +1,4 @@
-package com.pos.auth;
+package com.pos.security;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

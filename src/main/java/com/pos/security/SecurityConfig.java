@@ -19,7 +19,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.pos.usuario.UsuarioRepository;
-import com.pos.auth.TokenRevocadoService;
 
 import java.io.IOException;
 import java.util.List;

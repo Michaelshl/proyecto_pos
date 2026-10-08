@@ -1,4 +1,4 @@
-package com.pos.auth;
+package com.pos.security;
 
 import jakarta.persistence.*;
 import lombok.Data;

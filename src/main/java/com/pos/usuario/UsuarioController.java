@@ -1,6 +1,5 @@
 package com.pos.usuario;
 
-import com.pos.security.SecurityConfig;
 import com.pos.usuario.dto.AsignarRolRequest;
 import com.pos.usuario.dto.InactivarRequest;
 import com.pos.usuario.dto.UsuarioRequest;

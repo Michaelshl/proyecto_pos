@@ -5,6 +5,7 @@ import com.pos.rol.Rol;
 import com.pos.usuario.Usuario;
 import com.pos.usuario.UsuarioRepository;
 import com.pos.security.JwtUtil;
+import com.pos.security.TokenRevocadoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
