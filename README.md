@@ -138,4 +138,4 @@ Ninguna tabla usa llaves autogeneradas; cada una usa un dato propio de la entida
 
 ## Repositorio
 
-Ramas: `main` (código base) y `primer-entrega` (trabajo del Sprint 1).
+Ramas: `main` (código estable, entregado) y `develop` (trabajo en curso; cada funcionalidad nueva sale de ahí en una rama `feature/...`). La entrega del Sprint 1 quedó marcada con la etiqueta `sprint-1`.
