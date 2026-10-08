@@ -53,6 +53,16 @@
     .msg { padding: 10px 16px; border-radius: 6px; margin-top: 12px; font-size: 14px; display: none; }
     .msg-ok  { background: #d4edda; color: #155724; }
     .msg-err { background: #f8d7da; color: #721c24; }
+
+    /* Pestañas principales y subpestañas */
+    .tabs { display: flex; gap: 4px; border-bottom: 2px solid #1a1a2e; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab { background: #e4e6eb; color: #333; border-radius: 6px 6px 0 0; padding: 10px 22px; }
+    .tab.activa { background: #1a1a2e; color: white; }
+    .subtabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .subtab { background: white; color: #1a1a2e; border: 1px solid #1a1a2e; padding: 6px 16px; font-size: 13px; }
+    .subtab.activa { background: #1a1a2e; color: white; }
+    .panel, .subpanel { display: none; }
+    .panel.activo, .subpanel.activo { display: block; }
   </style>
 </head>
 <body>
@@ -78,108 +88,130 @@
 
 <!-- VISTA PRINCIPAL: solo visible con sesión iniciada -->
 <div id="vista-app" class="container" style="display:none">
+  <nav class="tabs">
+    <button class="tab solo-admin" id="t-usuarios" onclick="abrirPestana('usuarios')">👤 Usuarios</button>
+    <button class="tab solo-admin" id="t-roles" onclick="abrirPestana('roles')">🔑 Roles</button>
+    <button class="tab" id="t-categorias" onclick="abrirPestana('categorias')">🏷️ Categorías</button>
+  </nav>
 
-  <!-- CREAR USUARIO -->
-  <div class="card solo-admin">
-    <h2>Crear Usuario</h2>
-    <div class="form-row">
-      <input id="c-nombre"   placeholder="Nombre" />
-      <input id="c-apellido" placeholder="Apellido" />
-      <input id="c-cedula" placeholder="Cédula" inputmode="numeric" />
-    </div>
-    <div class="form-row">
-      <input id="c-email"    placeholder="Email" type="email" />
-      <input id="c-password" placeholder="Contraseña" type="password" />
-      <select id="c-rol"><option value="">Cargando roles...</option></select>
-    </div>
-    <button class="btn-primary" onclick="crearUsuario()">Crear Usuario</button>
-    <div id="msg-crear" class="msg"></div>
-  </div>
+  <!-- PESTAÑA USUARIOS (RF-004 a RF-007 y RF-009) -->
+  <section id="p-usuarios" class="panel solo-admin">
+    <nav class="subtabs">
+      <button class="subtab" id="st-listado" onclick="abrirSub('listado')">Listado</button>
+      <button class="subtab" id="st-crear" onclick="abrirSub('crear')">Crear</button>
+      <button class="subtab" id="st-buscar" onclick="abrirSub('buscar')">Buscar</button>
+      <button class="subtab" id="st-actualizar" onclick="abrirSub('actualizar')">Actualizar</button>
+      <button class="subtab" id="st-inactivar" onclick="abrirSub('inactivar')">Inactivar</button>
+      <button class="subtab" id="st-asignar" onclick="abrirSub('asignar')">Asignar rol</button>
+    </nav>
 
   <!-- TABLA DE USUARIOS -->
-  <div class="card solo-admin">
-    <h2>Usuarios Registrados <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarUsuarios()">↺ Recargar</button></h2>
-    <table>
-      <thead><tr><th>Cédula</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
-      <tbody id="tabla-usuarios"><tr><td colspan="6" style="text-align:center;color:#999">Cargando...</td></tr></tbody>
-    </table>
-  </div>
-
-  <!-- ACTUALIZAR USUARIO -->
-  <div class="card solo-admin">
-    <h2>Actualizar Usuario</h2>
-    <div class="form-row">
-      <input id="u-cedula"   placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
-      <input id="u-nombre"   placeholder="Nuevo nombre" />
-      <input id="u-apellido" placeholder="Nuevo apellido" />
-      <input id="u-email"    placeholder="Nuevo email" type="email" />
+    <div class="card subpanel" id="s-listado">
+      <h2>Usuarios Registrados <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarUsuarios()">↺ Recargar</button></h2>
+      <table>
+        <thead><tr><th>Cédula</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="tabla-usuarios"><tr><td colspan="6" style="text-align:center;color:#999">Cargando...</td></tr></tbody>
+      </table>
     </div>
-    <button class="btn-warning" onclick="actualizarUsuario()">Actualizar</button>
-    <div id="msg-actualizar" class="msg"></div>
-  </div>
 
-  <!-- INACTIVAR USUARIO -->
-  <div class="card solo-admin">
-    <h2>Inactivar Usuario</h2>
-    <div class="form-row">
-      <input id="i-cedula" placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
-      <input id="i-motivo" placeholder="Motivo de inactivación" style="flex:3" />
+  <!-- CREAR USUARIO -->
+    <div class="card subpanel" id="s-crear">
+      <h2>Crear Usuario</h2>
+      <div class="form-row">
+        <input id="c-nombre"   placeholder="Nombre" />
+        <input id="c-apellido" placeholder="Apellido" />
+        <input id="c-cedula" placeholder="Cédula" inputmode="numeric" />
+      </div>
+      <div class="form-row">
+        <input id="c-email"    placeholder="Email" type="email" />
+        <input id="c-password" placeholder="Contraseña" type="password" />
+        <select id="c-rol"><option value="">Cargando roles...</option></select>
+      </div>
+      <button class="btn-primary" onclick="crearUsuario()">Crear Usuario</button>
+      <div id="msg-crear" class="msg"></div>
     </div>
-    <button class="btn-danger" onclick="inactivarUsuario()">Inactivar</button>
-    <div id="msg-inactivar" class="msg"></div>
-  </div>
 
   <!-- BUSCAR USUARIO (RF-006) -->
-  <div class="card solo-admin">
-    <h2>Buscar Usuario</h2>
-    <div class="form-row">
-      <input id="b-cedula" placeholder="Cédula" inputmode="numeric" />
-      <input id="b-email"    placeholder="o Email" type="email" />
+    <div class="card subpanel" id="s-buscar">
+      <h2>Buscar Usuario</h2>
+      <div class="form-row">
+        <input id="b-cedula" placeholder="Cédula" inputmode="numeric" />
+        <input id="b-email"    placeholder="o Email" type="email" />
+      </div>
+      <button class="btn-primary" onclick="buscarUsuario()">Buscar</button>
+      <div id="msg-buscar" class="msg"></div>
     </div>
-    <button class="btn-primary" onclick="buscarUsuario()">Buscar</button>
-    <div id="msg-buscar" class="msg"></div>
-  </div>
+
+  <!-- ACTUALIZAR USUARIO -->
+    <div class="card subpanel" id="s-actualizar">
+      <h2>Actualizar Usuario</h2>
+      <div class="form-row">
+        <input id="u-cedula"   placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
+        <input id="u-nombre"   placeholder="Nuevo nombre" />
+        <input id="u-apellido" placeholder="Nuevo apellido" />
+        <input id="u-email"    placeholder="Nuevo email" type="email" />
+      </div>
+      <button class="btn-warning" onclick="actualizarUsuario()">Actualizar</button>
+      <div id="msg-actualizar" class="msg"></div>
+    </div>
+
+  <!-- INACTIVAR USUARIO -->
+    <div class="card subpanel" id="s-inactivar">
+      <h2>Inactivar Usuario</h2>
+      <div class="form-row">
+        <input id="i-cedula" placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
+        <input id="i-motivo" placeholder="Motivo de inactivación" style="flex:3" />
+      </div>
+      <button class="btn-danger" onclick="inactivarUsuario()">Inactivar</button>
+      <div id="msg-inactivar" class="msg"></div>
+    </div>
 
   <!-- ASIGNAR ROL (RF-009) -->
-  <div class="card solo-admin">
-    <h2>Asignar Rol a un Usuario</h2>
-    <div class="form-row">
-      <input id="a-cedula" placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
-      <select id="a-rol"><option value="">Cargando roles...</option></select>
-    </div>
-    <button class="btn-warning" onclick="asignarRol()">Asignar rol</button>
-    <div id="msg-asignar" class="msg"></div>
-  </div>
-
-  <!-- CREAR ROL (RF-008) -->
-  <div class="card solo-admin">
-    <h2>Crear Rol</h2>
-    <div class="form-row">
-      <input id="r-nombre"   placeholder="Nombre del rol" />
-      <input id="r-desc"     placeholder="Descripción" />
-      <input id="r-permisos" placeholder="Permisos separados por coma" />
-    </div>
-    <button class="btn-primary" onclick="crearRol()">Crear Rol</button>
-    <div id="msg-rol" class="msg"></div>
-  </div>
-
-  <!-- CATEGORÍAS (RF-010 y RF-012) -->
-  <div class="card">
-    <h2>Categorías <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarCategorias()">↺ Listar</button></h2>
-    <div class="solo-admin">
+    <div class="card subpanel" id="s-asignar">
+      <h2>Asignar Rol a un Usuario</h2>
       <div class="form-row">
-        <input id="k-nombre" placeholder="Nombre de la categoría" />
-        <input id="k-desc"   placeholder="Descripción" />
+        <input id="a-cedula" placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
+        <select id="a-rol"><option value="">Cargando roles...</option></select>
       </div>
-      <button class="btn-primary" onclick="crearCategoria()">Crear Categoría</button>
+      <button class="btn-warning" onclick="asignarRol()">Asignar rol</button>
+      <div id="msg-asignar" class="msg"></div>
     </div>
-    <div id="msg-categoria" class="msg"></div>
-    <table style="margin-top:16px">
-      <thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
-      <tbody id="tabla-categorias"><tr><td colspan="2" style="text-align:center;color:#999">Pulse Listar</td></tr></tbody>
-    </table>
-  </div>
+  </section>
 
+  <!-- PESTAÑA ROLES (RF-008) -->
+  <section id="p-roles" class="panel solo-admin">
+  <!-- CREAR ROL (RF-008) -->
+    <div class="card">
+      <h2>Crear Rol</h2>
+      <div class="form-row">
+        <input id="r-nombre"   placeholder="Nombre del rol" />
+        <input id="r-desc"     placeholder="Descripción" />
+        <input id="r-permisos" placeholder="Permisos separados por coma" />
+      </div>
+      <button class="btn-primary" onclick="crearRol()">Crear Rol</button>
+      <div id="msg-rol" class="msg"></div>
+    </div>
+  </section>
+
+  <!-- PESTAÑA CATEGORÍAS (RF-010 y RF-012) -->
+  <section id="p-categorias" class="panel">
+  <!-- CATEGORÍAS (RF-010 y RF-012) -->
+    <div class="card">
+      <h2>Categorías <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarCategorias()">↺ Listar</button></h2>
+      <div class="solo-admin">
+        <div class="form-row">
+          <input id="k-nombre" placeholder="Nombre de la categoría" />
+          <input id="k-desc"   placeholder="Descripción" />
+        </div>
+        <button class="btn-primary" onclick="crearCategoria()">Crear Categoría</button>
+      </div>
+      <div id="msg-categoria" class="msg"></div>
+      <table style="margin-top:16px">
+        <thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
+        <tbody id="tabla-categorias"><tr><td colspan="2" style="text-align:center;color:#999">Pulse Listar</td></tr></tbody>
+      </table>
+    </div>
+  </section>
 
 </div>
 
@@ -212,6 +244,8 @@
       document.getElementById('status').textContent = 'Conectado como ' + cedula + (rol ? ' (' + rol + ')' : '');
       aplicarRol(rol);
       mostrarVista(true);
+      abrirPestana(rol === 'ADMIN' ? 'usuarios' : 'categorias');
+      abrirSub('listado');
       if (rol === 'ADMIN') {
         cargarRoles();
         cargarUsuarios();
@@ -236,6 +270,21 @@
     document.querySelectorAll('.solo-admin').forEach(el => {
       el.style.display = rol === 'ADMIN' ? '' : 'none';
     });
+  }
+
+  // Una sola pestaña visible a la vez; las de administrador se ocultan para otros roles (aplicarRol).
+  function abrirPestana(id) {
+    document.querySelectorAll('.panel').forEach(el => el.classList.remove('activo'));
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('activa'));
+    document.getElementById('p-' + id).classList.add('activo');
+    document.getElementById('t-' + id).classList.add('activa');
+  }
+
+  function abrirSub(id) {
+    document.querySelectorAll('.subpanel').forEach(el => el.classList.remove('activo'));
+    document.querySelectorAll('.subtab').forEach(el => el.classList.remove('activa'));
+    document.getElementById('s-' + id).classList.add('activo');
+    document.getElementById('st-' + id).classList.add('activa');
   }
 
   function mostrarVista(conSesion) {
@@ -370,12 +419,14 @@
     document.getElementById('u-apellido').value = apellido;
     document.getElementById('u-email').value = email;
     document.getElementById('msg-actualizar').style.display = 'none';
+    abrirSub('actualizar');
   }
 
   function fillInactivar(cedula) {
     document.getElementById('i-cedula').value = cedula;
     document.getElementById('i-motivo').value = '';
     document.getElementById('msg-inactivar').style.display = 'none';
+    abrirSub('inactivar');
   }
 
   function mostrar(idMsg, ok, texto) {
