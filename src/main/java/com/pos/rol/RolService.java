@@ -21,7 +21,7 @@ public class RolService {
 
     public RolResponse crear(RolRequest request) {
         String nombre = request.getNombre().trim().toUpperCase();
-        if (rolRepository.existsByNombreIgnoreCase(nombre)) {
+        if (rolRepository.existsById(nombre)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya existe un rol con ese nombre");
         }
 
@@ -42,7 +42,6 @@ public class RolService {
 
     private RolResponse toResponse(Rol rol) {
         return RolResponse.builder()
-                .id(rol.getId())
                 .nombre(rol.getNombre())
                 .descripcion(rol.getDescripcion())
                 .permisos(rol.getPermisos())

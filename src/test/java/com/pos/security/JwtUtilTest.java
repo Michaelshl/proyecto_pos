@@ -21,10 +21,10 @@ class JwtUtilTest {
 
     @Test
     void tokenGeneradoEsValidoYConservaDatos() {
-        String token = jwtUtil.generarToken("ana", "ADMIN");
+        String token = jwtUtil.generarToken("1001", "ADMIN");
 
         assertTrue(jwtUtil.tokenValido(token));
-        assertEquals("ana", jwtUtil.obtenerUsername(token));
+        assertEquals("1001", jwtUtil.obtenerCedula(token));
         assertEquals("ADMIN", jwtUtil.obtenerRol(token));
         assertNotNull(jwtUtil.obtenerJti(token));
     }
@@ -32,20 +32,20 @@ class JwtUtilTest {
     @Test
     void cadaTokenTieneJtiDistinto() {
         assertNotEquals(
-                jwtUtil.obtenerJti(jwtUtil.generarToken("ana", "ADMIN")),
-                jwtUtil.obtenerJti(jwtUtil.generarToken("ana", "ADMIN")));
+                jwtUtil.obtenerJti(jwtUtil.generarToken("1001", "ADMIN")),
+                jwtUtil.obtenerJti(jwtUtil.generarToken("1001", "ADMIN")));
     }
 
     @Test
     void tokenExpiradoNoEsValido() {
         ReflectionTestUtils.setField(jwtUtil, "expiration", -1000L);
 
-        assertFalse(jwtUtil.tokenValido(jwtUtil.generarToken("ana", "ADMIN")));
+        assertFalse(jwtUtil.tokenValido(jwtUtil.generarToken("1001", "ADMIN")));
     }
 
     @Test
     void tokenConFirmaAlteradaNoEsValido() {
-        String token = jwtUtil.generarToken("ana", "ADMIN");
+        String token = jwtUtil.generarToken("1001", "ADMIN");
         String alterado = token.substring(0, token.length() - 2) + "xx";
 
         assertFalse(jwtUtil.tokenValido(alterado));
@@ -57,7 +57,7 @@ class JwtUtilTest {
         ReflectionTestUtils.setField(otro, "secret", "otra-clave-distinta-de-al-menos-32-caracteres-yy");
         ReflectionTestUtils.setField(otro, "expiration", 60_000L);
 
-        assertFalse(jwtUtil.tokenValido(otro.generarToken("ana", "ADMIN")));
+        assertFalse(jwtUtil.tokenValido(otro.generarToken("1001", "ADMIN")));
     }
 
     @Test

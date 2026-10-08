@@ -34,8 +34,8 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         // Usamos UNAUTHORIZED (no NOT_FOUND) deliberadamente para no revelar
-        // si el username existe o no (evita ataques de enumeración de usuarios).
-        Usuario usuario = usuarioRepository.findByUsername(request.getUsername()).orElse(null);
+        // si la cédula existe o no (evita ataques de enumeración de usuarios).
+        Usuario usuario = usuarioRepository.findById(request.getCedula().trim()).orElse(null);
 
         // Si el usuario no existe se compara contra un hash falso, para que la
         // respuesta tarde lo mismo y no se pueda enumerar usuarios por tiempo.
@@ -60,7 +60,7 @@ public class AuthService {
         }
 
         String rol = usuario.getRol() != null ? usuario.getRol().getNombre() : null;
-        String token = jwtUtil.generarToken(usuario.getUsername(), rol);
+        String token = jwtUtil.generarToken(usuario.getCedula(), rol);
         return new LoginResponse(token);
     }
 

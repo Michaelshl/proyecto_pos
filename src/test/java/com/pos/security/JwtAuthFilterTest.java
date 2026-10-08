@@ -50,7 +50,7 @@ class JwtAuthFilterTest {
         Rol rol = new Rol();
         rol.setNombre(rolNombre);
         Usuario u = new Usuario();
-        u.setUsername("ana");
+        u.setCedula("1001");
         u.setActivo(activo);
         u.setRol(rol);
         return u;
@@ -74,25 +74,25 @@ class JwtAuthFilterTest {
 
     @Test
     void tokenValidoAutenticaConElRolDeLaBd() throws Exception {
-        String token = jwtUtil.generarToken("ana", "CAJERO");
+        String token = jwtUtil.generarToken("1001", "CAJERO");
         when(tokenRevocadoService.estaRevocado(any())).thenReturn(false);
         // El rol en la BD cambió a ADMIN después de emitir el token.
-        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario(true, "ADMIN")));
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario(true, "ADMIN")));
 
         ejecutar(token);
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         assertNotNull(auth);
-        assertEquals("ana", auth.getName());
+        assertEquals("1001", auth.getName());
         assertTrue(auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
         assertEquals(1, auth.getAuthorities().size());
     }
 
     @Test
     void usuarioInactivadoPierdeAccesoConTokenVigente() throws Exception {
-        String token = jwtUtil.generarToken("ana", "ADMIN");
+        String token = jwtUtil.generarToken("1001", "ADMIN");
         when(tokenRevocadoService.estaRevocado(any())).thenReturn(false);
-        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario(false, "ADMIN")));
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario(false, "ADMIN")));
 
         ejecutar(token);
 
@@ -101,9 +101,9 @@ class JwtAuthFilterTest {
 
     @Test
     void usuarioEliminadoNoAutentica() throws Exception {
-        String token = jwtUtil.generarToken("ana", "ADMIN");
+        String token = jwtUtil.generarToken("1001", "ADMIN");
         when(tokenRevocadoService.estaRevocado(any())).thenReturn(false);
-        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.empty());
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.empty());
 
         ejecutar(token);
 
@@ -112,7 +112,7 @@ class JwtAuthFilterTest {
 
     @Test
     void tokenRevocadoNoAutentica() throws Exception {
-        String token = jwtUtil.generarToken("ana", "ADMIN");
+        String token = jwtUtil.generarToken("1001", "ADMIN");
         when(tokenRevocadoService.estaRevocado(any())).thenReturn(true);
 
         ejecutar(token);

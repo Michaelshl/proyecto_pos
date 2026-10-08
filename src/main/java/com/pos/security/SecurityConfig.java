@@ -106,7 +106,7 @@ public class SecurityConfig {
                 if (jwtUtil.tokenValido(token) && !estaRevocado(token)) {
                     // El estado y el rol se leen de la BD, no del token: así inactivar
                     // a un usuario o cambiarle el rol surte efecto de inmediato.
-                    usuarioRepository.findByUsername(jwtUtil.obtenerUsername(token))
+                    usuarioRepository.findById(jwtUtil.obtenerCedula(token))
                             .filter(u -> Boolean.TRUE.equals(u.getActivo()))
                             .ifPresent(u -> {
                                 List<SimpleGrantedAuthority> autoridades = u.getRol() == null
@@ -115,7 +115,7 @@ public class SecurityConfig {
                                                 "ROLE_" + u.getRol().getNombre().toUpperCase()));
                                 SecurityContextHolder.getContext().setAuthentication(
                                         new UsernamePasswordAuthenticationToken(
-                                                u.getUsername(), null, autoridades));
+                                                u.getCedula(), null, autoridades));
                             });
                 }
             }

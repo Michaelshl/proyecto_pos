@@ -11,17 +11,15 @@ import java.util.List;
 @Table(name = "roles")
 public class Rol {
 
+    // El nombre del rol (ADMIN, CAJERO...) es la llave primaria. Se guarda en mayúsculas.
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(unique = true)
+    @Column(length = 50)
     private String nombre;
 
     private String descripcion;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "rol_permisos", joinColumns = @JoinColumn(name = "rol_id"))
+    @CollectionTable(name = "rol_permisos", joinColumns = @JoinColumn(name = "rol_nombre"))
     @Column(name = "permiso")
     private List<String> permisos = new ArrayList<>();
 }

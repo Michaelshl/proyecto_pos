@@ -22,20 +22,20 @@ public class DataInitializer implements CommandLineRunner {
     private final RolRepository rolRepository;
     private final UsuarioRepository usuarioRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final String adminUsername;
+    private final String adminCedula;
     private final String adminEmail;
     private final String adminPassword;
 
     public DataInitializer(RolRepository rolRepository,
                            UsuarioRepository usuarioRepository,
                            BCryptPasswordEncoder passwordEncoder,
-                           @Value("${ADMIN_USERNAME:admin}") String adminUsername,
+                           @Value("${ADMIN_CEDULA:}") String adminCedula,
                            @Value("${ADMIN_EMAIL:admin@pos.com}") String adminEmail,
                            @Value("${ADMIN_PASSWORD:}") String adminPassword) {
         this.rolRepository = rolRepository;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
-        this.adminUsername = adminUsername;
+        this.adminCedula = adminCedula;
         this.adminEmail = adminEmail;
         this.adminPassword = adminPassword;
     }
@@ -50,7 +50,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void asegurarRol(String nombre, String descripcion, List<String> permisos) {
-        Rol rol = rolRepository.findByNombreIgnoreCase(nombre).orElseGet(() -> {
+        Rol rol = rolRepository.findById(nombre).orElseGet(() -> {
             Rol nuevo = new Rol();
             nuevo.setNombre(nombre);
             return nuevo;
@@ -68,21 +68,21 @@ public class DataInitializer implements CommandLineRunner {
         if (usuarioRepository.count() > 0) {
             return;
         }
-        if (adminPassword.isBlank()) {
-            log.warn("No hay usuarios y ADMIN_PASSWORD no está definida: no se creó el administrador inicial. "
-                    + "Defínala en .env y reinicie la aplicación.");
+        if (adminPassword.isBlank() || adminCedula.isBlank()) {
+            log.warn("No hay usuarios y ADMIN_CEDULA o ADMIN_PASSWORD no están definidas: no se creó el "
+                    + "administrador inicial. Defínalas en .env y reinicie la aplicación.");
             return;
         }
 
         Usuario admin = new Usuario();
         admin.setNombre("Administrador");
         admin.setApellido("Sistema");
-        admin.setUsername(adminUsername);
+        admin.setCedula(adminCedula);
         admin.setEmail(adminEmail);
         admin.setPassword(passwordEncoder.encode(adminPassword));
         admin.setActivo(true);
-        admin.setRol(rolRepository.findByNombreIgnoreCase("ADMIN").orElseThrow());
+        admin.setRol(rolRepository.findById("ADMIN").orElseThrow());
         usuarioRepository.save(admin);
-        log.info("Administrador inicial creado: usuario '{}'", adminUsername);
+        log.info("Administrador inicial creado: cédula '{}'", adminCedula);
     }
 }

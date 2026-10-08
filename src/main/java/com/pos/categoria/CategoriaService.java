@@ -40,7 +40,6 @@ public class CategoriaService {
 
     private CategoriaResponse toResponse(Categoria categoria) {
         return CategoriaResponse.builder()
-                .id(categoria.getId())
                 .nombre(categoria.getNombre())
                 .descripcion(categoria.getDescripcion())
                 .build();

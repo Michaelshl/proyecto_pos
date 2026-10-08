@@ -43,19 +43,19 @@ public class UsuarioService {
                     HttpStatus.BAD_REQUEST, "El email ya está registrado");
         }
 
-        if (usuarioRepository.existsByUsername(request.getUsername())) {
+        if (usuarioRepository.existsById(request.getCedula())) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "El username ya está registrado");
+                    HttpStatus.BAD_REQUEST, "La cédula ya está registrada");
         }
 
-        Rol rol = rolRepository.findById(request.getRolId())
+        Rol rol = rolRepository.findById(request.getRol().trim().toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "El rol no existe"));
 
         Usuario usuario = new Usuario();
         usuario.setNombre(request.getNombre());
         usuario.setApellido(request.getApellido());
-        usuario.setUsername(request.getUsername());
+        usuario.setCedula(request.getCedula());
         usuario.setEmail(request.getEmail());
         // La contraseña se encripta aquí: NUNCA se guarda texto plano en la BD.
         usuario.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -66,8 +66,8 @@ public class UsuarioService {
         return toResponse(usuario);
     }
 
-    public UsuarioResponse actualizar(Long id, UsuarioUpdateRequest request) {
-        Usuario usuario = usuarioRepository.findById(id)
+    public UsuarioResponse actualizar(String cedula, UsuarioUpdateRequest request) {
+        Usuario usuario = usuarioRepository.findById(cedula)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
@@ -78,7 +78,7 @@ public class UsuarioService {
         }
 
         // Solo actualizamos los campos permitidos (nombre, apellido, email).
-        // No tocamos username, password ni rol porque tienen restricciones explicadas en el DTO.
+        // No tocamos cédula, password ni rol porque tienen restricciones explicadas en el DTO.
         usuario.setNombre(request.getNombre());
         usuario.setApellido(request.getApellido());
         usuario.setEmail(request.getEmail());
@@ -87,7 +87,7 @@ public class UsuarioService {
         return toResponse(usuario);
     }
 
-    public String inactivar(Long id, InactivarRequest request) {
+    public String inactivar(String cedula, InactivarRequest request) {
         if (request.getMotivo() == null || request.getMotivo().isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "El motivo es obligatorio");
@@ -99,7 +99,7 @@ public class UsuarioService {
                     HttpStatus.BAD_REQUEST, "El motivo no puede superar 500 caracteres");
         }
 
-        Usuario usuario = usuarioRepository.findById(id)
+        Usuario usuario = usuarioRepository.findById(cedula)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
@@ -111,27 +111,27 @@ public class UsuarioService {
         return "Usuario inactivado exitosamente";
     }
 
-    public UsuarioResponse buscar(String username, String email) {
-        boolean hayUsername = username != null && !username.isBlank();
+    public UsuarioResponse buscar(String cedula, String email) {
+        boolean hayCedula = cedula != null && !cedula.isBlank();
         boolean hayEmail = email != null && !email.isBlank();
-        if (!hayUsername && !hayEmail) {
+        if (!hayCedula && !hayEmail) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Debe indicar username o email");
+                    HttpStatus.BAD_REQUEST, "Debe indicar cédula o email");
         }
 
-        Usuario usuario = (hayUsername
-                ? usuarioRepository.findByUsername(username)
+        Usuario usuario = (hayCedula
+                ? usuarioRepository.findById(cedula.trim())
                 : usuarioRepository.findByEmail(email))
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Sin resultados para la búsqueda"));
         return toResponse(usuario);
     }
 
-    public UsuarioResponse asignarRol(Long id, Long rolId) {
-        Usuario usuario = usuarioRepository.findById(id)
+    public UsuarioResponse asignarRol(String cedula, String nombreRol) {
+        Usuario usuario = usuarioRepository.findById(cedula)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        Rol rol = rolRepository.findById(rolId)
+        Rol rol = rolRepository.findById(nombreRol.trim().toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "El rol no existe"));
 
@@ -142,10 +142,9 @@ public class UsuarioService {
 
     private UsuarioResponse toResponse(Usuario usuario) {
         return UsuarioResponse.builder()
-                .id(usuario.getId())
+                .cedula(usuario.getCedula())
                 .nombre(usuario.getNombre())
                 .apellido(usuario.getApellido())
-                .username(usuario.getUsername())
                 .email(usuario.getEmail())
                 .activo(usuario.getActivo())
                 .rol(usuario.getRol() != null ? usuario.getRol().getNombre() : null)

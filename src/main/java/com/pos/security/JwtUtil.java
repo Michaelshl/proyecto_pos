@@ -38,12 +38,12 @@ public class JwtUtil {
         }
     }
 
-    // Crea un token JWT con el username como "subject" (identificador principal).
-    // El token contiene: quién es (username), cuándo fue emitido, cuándo expira y la firma.
-    public String generarToken(String username, String rol) {
+    // Crea un token JWT con la cédula como "subject" (identificador principal).
+    // El token contiene: quién es (cédula), cuándo fue emitido, cuándo expira y la firma.
+    public String generarToken(String cedula, String rol) {
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())
-                .subject(username)
+                .subject(cedula)
                 .claim("rol", rol)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
@@ -51,8 +51,8 @@ public class JwtUtil {
                 .compact();
     }
 
-    // Extrae el username del payload sin consultar la base de datos.
-    public String obtenerUsername(String token) {
+    // Extrae la cédula del payload sin consultar la base de datos.
+    public String obtenerCedula(String token) {
         return getClaims(token).getSubject();
     }
 

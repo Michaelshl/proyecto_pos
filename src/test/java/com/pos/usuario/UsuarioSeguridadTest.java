@@ -54,7 +54,7 @@ class UsuarioSeguridadTest {
     void crearUsuarioSinCamposObligatoriosDa400()throws Exception {
         mockMvc.perform(post("/api/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"x\",\"email\":\"no-es-email\"}"))
+                        .content("{\"cedula\":\"x\",\"email\":\"no-es-email\"}"))
                 .andExpect(status().isBadRequest());
     }
 

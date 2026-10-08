@@ -8,11 +8,9 @@ import lombok.Data;
 @Table(name = "categorias")
 public class Categoria {
 
+    // El nombre de la categoría es la llave primaria.
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(unique = true, nullable = false)
+    @Column(length = 100)
     private String nombre;
 
     private String descripcion;

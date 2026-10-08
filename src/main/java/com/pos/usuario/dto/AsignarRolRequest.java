@@ -1,10 +1,10 @@
 package com.pos.usuario.dto;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
 public class AsignarRolRequest {
-    @NotNull
-    private Long rolId;
+    @NotBlank
+    private String rol;
 }

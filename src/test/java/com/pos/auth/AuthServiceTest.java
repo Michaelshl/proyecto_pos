@@ -38,15 +38,15 @@ class AuthServiceTest {
         Rol rol = new Rol();
         rol.setNombre("ADMIN");
         usuario = new Usuario();
-        usuario.setUsername("ana");
+        usuario.setCedula("1001");
         usuario.setPassword(encoder.encode("clave-correcta"));
         usuario.setActivo(true);
         usuario.setRol(rol);
     }
 
-    private LoginRequest request(String username, String password) {
+    private LoginRequest request(String cedula, String password) {
         LoginRequest r = new LoginRequest();
-        r.setUsername(username);
+        r.setCedula(cedula);
         r.setPassword(password);
         return r;
     }
@@ -57,48 +57,48 @@ class AuthServiceTest {
 
     @Test
     void loginCorrectoDevuelveToken() {
-        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario));
-        when(jwtUtil.generarToken("ana", "ADMIN")).thenReturn("el-token");
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario));
+        when(jwtUtil.generarToken("1001", "ADMIN")).thenReturn("el-token");
 
-        assertEquals("el-token", authService.login(request("ana", "clave-correcta")).getToken());
+        assertEquals("el-token", authService.login(request("1001", "clave-correcta")).getToken());
     }
 
     @Test
     void usuarioInexistenteDa401() {
-        when(usuarioRepository.findByUsername("nadie")).thenReturn(Optional.empty());
+        when(usuarioRepository.findById("9999")).thenReturn(Optional.empty());
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
-                () -> authService.login(request("nadie", "x")));
+                () -> authService.login(request("9999", "x")));
         assertEquals(HttpStatus.UNAUTHORIZED, estadoDe(e));
         verify(jwtUtil, never()).generarToken(any(), any());
     }
 
     @Test
     void claveIncorrectaDa401() {
-        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario));
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
-                () -> authService.login(request("ana", "mala")));
+                () -> authService.login(request("1001", "mala")));
         assertEquals(HttpStatus.UNAUTHORIZED, estadoDe(e));
     }
 
     @Test
     void usuarioInactivoConClaveIncorrectaDa401NoRevelaEstado() {
         usuario.setActivo(false);
-        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario));
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
-                () -> authService.login(request("ana", "mala")));
+                () -> authService.login(request("1001", "mala")));
         assertEquals(HttpStatus.UNAUTHORIZED, estadoDe(e));
     }
 
     @Test
     void usuarioInactivoConClaveCorrectaDa403() {
         usuario.setActivo(false);
-        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario));
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
-                () -> authService.login(request("ana", "clave-correcta")));
+                () -> authService.login(request("1001", "clave-correcta")));
         assertEquals(HttpStatus.FORBIDDEN, estadoDe(e));
     }
 
@@ -106,10 +106,10 @@ class AuthServiceTest {
     void usuarioInactivoVeElMotivoAlIniciarSesion() {
         usuario.setActivo(false);
         usuario.setMotivoInactivacion("Renuncia");
-        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario));
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
-                () -> authService.login(request("ana", "clave-correcta")));
+                () -> authService.login(request("1001", "clave-correcta")));
         assertEquals(HttpStatus.FORBIDDEN, estadoDe(e));
         assertEquals("Usuario inactivo. Motivo: Renuncia", e.getReason());
     }
@@ -117,10 +117,10 @@ class AuthServiceTest {
     @Test
     void estadoActivoNuloSeTrataComoInactivo() {
         usuario.setActivo(null);
-        when(usuarioRepository.findByUsername("ana")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario));
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
-                () -> authService.login(request("ana", "clave-correcta")));
+                () -> authService.login(request("1001", "clave-correcta")));
         assertEquals(HttpStatus.FORBIDDEN, estadoDe(e));
     }
 

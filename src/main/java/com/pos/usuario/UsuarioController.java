@@ -30,15 +30,15 @@ public class UsuarioController {
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<UsuarioResponse> buscar(@RequestParam(required = false) String username,
+    public ResponseEntity<UsuarioResponse> buscar(@RequestParam(required = false) String cedula,
                                                   @RequestParam(required = false) String email) {
-        return ResponseEntity.ok(usuarioService.buscar(username, email));
+        return ResponseEntity.ok(usuarioService.buscar(cedula, email));
     }
 
-    @PatchMapping("/{id}/rol")
-    public ResponseEntity<UsuarioResponse> asignarRol(@PathVariable Long id,
+    @PatchMapping("/{cedula}/rol")
+    public ResponseEntity<UsuarioResponse> asignarRol(@PathVariable String cedula,
                                                       @Valid @RequestBody AsignarRolRequest request) {
-        return ResponseEntity.ok(usuarioService.asignarRol(id, request.getRolId()));
+        return ResponseEntity.ok(usuarioService.asignarRol(cedula, request.getRol()));
     }
 
     // Devuelve 201 CREATED (no 200) porque estamos creando un recurso nuevo.
@@ -47,18 +47,18 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.crear(request));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<UsuarioResponse> actualizar(@PathVariable Long id,
+    @PutMapping("/{cedula}")
+    public ResponseEntity<UsuarioResponse> actualizar(@PathVariable String cedula,
                                                       @Valid @RequestBody UsuarioUpdateRequest request) {
-        return ResponseEntity.ok(usuarioService.actualizar(id, request));
+        return ResponseEntity.ok(usuarioService.actualizar(cedula, request));
     }
 
     // Usamos PATCH y no DELETE porque el recurso no se elimina, solo se modifica un campo.
     // La ruta /inactivar (verbo en la URL) se acepta en operaciones de estado que no tienen
     // representación como sub-recurso en REST puro.
-    @PatchMapping("/{id}/inactivar")
-    public ResponseEntity<String> inactivar(@PathVariable Long id,
+    @PatchMapping("/{cedula}/inactivar")
+    public ResponseEntity<String> inactivar(@PathVariable String cedula,
                                             @RequestBody InactivarRequest request) {
-        return ResponseEntity.ok(usuarioService.inactivar(id, request));
+        return ResponseEntity.ok(usuarioService.inactivar(cedula, request));
     }
 }
