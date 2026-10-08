@@ -68,7 +68,7 @@
 <body>
 
 <header>
-  <h1>🛒 POS - Nombre por confirmar</h1>
+  <h1>POS - Nombre por confirmar</h1>
   <span>
     <span id="status"></span>
     <button id="btn-salir" class="btn-salir" style="display:none" onclick="logout()">Cerrar sesión</button>
@@ -89,9 +89,9 @@
 <!-- VISTA PRINCIPAL: solo visible con sesión iniciada -->
 <div id="vista-app" class="container" style="display:none">
   <nav class="tabs">
-    <button class="tab solo-admin" id="t-usuarios" onclick="abrirPestana('usuarios')">👤 Usuarios</button>
-    <button class="tab solo-admin" id="t-roles" onclick="abrirPestana('roles')">🔑 Roles</button>
-    <button class="tab" id="t-categorias" onclick="abrirPestana('categorias')">🏷️ Categorías</button>
+    <button class="tab solo-admin" id="t-usuarios" onclick="abrirPestana('usuarios')">Usuarios</button>
+    <button class="tab solo-admin" id="t-roles" onclick="abrirPestana('roles')">Roles</button>
+    <button class="tab" id="t-categorias" onclick="abrirPestana('categorias')">Categorías</button>
   </nav>
 
   <!-- PESTAÑA USUARIOS (RF-004 a RF-007 y RF-009) -->
@@ -107,7 +107,7 @@
 
   <!-- TABLA DE USUARIOS -->
     <div class="card subpanel" id="s-listado">
-      <h2>Usuarios Registrados <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarUsuarios()">↺ Recargar</button></h2>
+      <h2>Usuarios Registrados <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarUsuarios()">Recargar</button></h2>
       <table>
         <thead><tr><th>Cédula</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
         <tbody id="tabla-usuarios"><tr><td colspan="6" style="text-align:center;color:#999">Cargando...</td></tr></tbody>
@@ -197,7 +197,7 @@
   <section id="p-categorias" class="panel">
   <!-- CATEGORÍAS (RF-010 y RF-012) -->
     <div class="card">
-      <h2>Categorías <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarCategorias()">↺ Listar</button></h2>
+      <h2>Categorías <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarCategorias()">Listar</button></h2>
       <div class="solo-admin">
         <div class="form-row">
           <input id="k-nombre" placeholder="Nombre de la categoría" />
@@ -361,13 +361,13 @@
     const msg = document.getElementById('msg-crear');
     if (res.ok) {
       msg.className = 'msg msg-ok'; msg.style.display = 'block';
-      msg.textContent = '✅ Usuario creado correctamente';
+      msg.textContent = 'Usuario creado correctamente';
       cargarUsuarios();
       ['c-nombre','c-apellido','c-cedula','c-email','c-password'].forEach(id => document.getElementById(id).value = '');
     } else {
       const err = await res.json();
       msg.className = 'msg msg-err'; msg.style.display = 'block';
-      msg.textContent = '❌ ' + (err.message || 'Error al crear usuario');
+      msg.textContent = err.message || 'Error al crear usuario';
     }
   }
 
@@ -386,11 +386,11 @@
     const msg = document.getElementById('msg-actualizar');
     if (res.ok) {
       msg.className = 'msg msg-ok'; msg.style.display = 'block';
-      msg.textContent = '✅ Usuario actualizado';
+      msg.textContent = 'Usuario actualizado';
       cargarUsuarios();
     } else {
       msg.className = 'msg msg-err'; msg.style.display = 'block';
-      msg.textContent = '❌ Error al actualizar';
+      msg.textContent = 'Error al actualizar';
     }
   }
 
@@ -405,11 +405,11 @@
     const msg = document.getElementById('msg-inactivar');
     if (res.ok) {
       msg.className = 'msg msg-ok'; msg.style.display = 'block';
-      msg.textContent = '✅ Usuario inactivado';
+      msg.textContent = 'Usuario inactivado';
       cargarUsuarios();
     } else {
       msg.className = 'msg msg-err'; msg.style.display = 'block';
-      msg.textContent = '❌ Error al inactivar';
+      msg.textContent = 'Error al inactivar';
     }
   }
 
@@ -433,7 +433,7 @@
     const msg = document.getElementById(idMsg);
     msg.className = 'msg ' + (ok ? 'msg-ok' : 'msg-err');
     msg.style.display = 'block';
-    msg.textContent = (ok ? '✅ ' : '❌ ') + texto;
+    msg.textContent = texto;
   }
 
   function esc(texto) {
