@@ -2,7 +2,7 @@
 
 Backend de un sistema de punto de venta para comercio minorista. Proyecto de Desarrollo de Software II, Universidad del Valle (sede Yumbo).
 
-**Estado:** Sprint 1 completo (autenticación, usuarios, roles y categorías). No tiene interfaz gráfica: es una API REST que se prueba con Postman, Swagger o `requests.http`.
+**Estado:** Sprint 1 completo (autenticación, usuarios, roles y categorías). Es una API REST con una página de pruebas en `http://localhost:8081` (`index.html`); también se prueba con Postman, Swagger o `requests.http`.
 
 ## Tecnologías
 
@@ -31,10 +31,11 @@ Copiar `.env.example` como `.env` (en la raíz del proyecto) y completarlo:
 ```
 DB_PASSWORD=contraseña_de_tu_mysql
 JWT_SECRET=una_clave_aleatoria_de_minimo_32_caracteres
+ADMIN_CEDULA=cedula_del_primer_administrador
 ADMIN_PASSWORD=contraseña_del_primer_administrador
 ```
 
-Opcionalmente `DB_USER` (por defecto `root`), `DB_URL` (por defecto `jdbc:mysql://localhost:3306/pos_db`), `ADMIN_USERNAME` (por defecto `admin`) y `ADMIN_EMAIL` (por defecto `admin@pos.com`). También se pueden definir como variables de entorno del sistema. El archivo `.env` no se sube a Git.
+Opcionalmente `DB_USER` (por defecto `root`), `DB_URL` (por defecto `jdbc:mysql://localhost:3306/pos_db`), `ADMIN_EMAIL` (por defecto `admin@pos.com`). También se pueden definir como variables de entorno del sistema. El archivo `.env` no se sube a Git.
 
 Si al arrancar aparece `Access denied for user 'root'`, falta el `.env` o no está en la carpeta desde donde se ejecuta la aplicación.
 
@@ -48,13 +49,13 @@ Está lista cuando el log muestra `Started PosApplication`. Queda en `http://loc
 
 **4. Iniciar sesión como administrador**
 
-Al arrancar con la base vacía, la aplicación crea sola el primer administrador: usuario `admin` (o `ADMIN_USERNAME`) y la contraseña de `ADMIN_PASSWORD`. Solo lo hace si no existe ningún usuario; si ya hay usuarios, o si `ADMIN_PASSWORD` no está definida, no crea nada (en ese caso el log lo avisa). La contraseña se guarda cifrada y no aparece en el log.
+Al arrancar con la base vacía, la aplicación crea sola el primer administrador: cédula `ADMIN_CEDULA` y contraseña `ADMIN_PASSWORD`. Solo lo hace si no existe ningún usuario; si ya hay usuarios, o si `ADMIN_CEDULA` o `ADMIN_PASSWORD` no están definidas, no crea nada (en ese caso el log lo avisa). La contraseña se guarda cifrada y no aparece en el log.
 
 Desde ahí, los demás usuarios se crean por la API.
 
 ## Cómo probar
 
-- **Postman:** importar `postman/POS_API.postman_collection.json` y ejecutar primero *Login admin*, que guarda el token para las demás peticiones. Antes de ejecutarla, completar las variables de colección `adminUser` y `adminPassword` con las del primer administrador (`ADMIN_USERNAME` / `ADMIN_PASSWORD` del `.env`).
+- **Postman:** importar `postman/POS_API.postman_collection.json` y ejecutar primero *Login admin*, que guarda el token para las demás peticiones. Antes de ejecutarla, completar las variables de colección `adminCedula` y `adminPassword` con las del primer administrador (`ADMIN_CEDULA` / `ADMIN_PASSWORD` del `.env`).
 - **IntelliJ:** abrir `src/test/requests.http` y ejecutar cada bloque (el de Login guarda el token).
 - **Swagger UI:** `http://localhost:8081/swagger-ui/index.html`. Hacer login, copiar el token y pegarlo en *Authorize*.
 
@@ -76,10 +77,10 @@ Authorization: Bearer <token>
 | `POST /api/auth/logout` | RF-002 | Usuario con token |
 | `GET /api/usuarios` | | ADMIN |
 | `POST /api/usuarios` | RF-004 | ADMIN |
-| `PUT /api/usuarios/{id}` | RF-005 | ADMIN |
-| `GET /api/usuarios/buscar?username=` o `?email=` | RF-006 | ADMIN |
-| `PATCH /api/usuarios/{id}/inactivar` | RF-007 | ADMIN |
-| `PATCH /api/usuarios/{id}/rol` | RF-009 | ADMIN |
+| `PUT /api/usuarios/{cedula}` | RF-005 | ADMIN |
+| `GET /api/usuarios/buscar?cedula=` o `?email=` | RF-006 | ADMIN |
+| `PATCH /api/usuarios/{cedula}/inactivar` | RF-007 | ADMIN |
+| `PATCH /api/usuarios/{cedula}/rol` | RF-009 | ADMIN |
 | `POST /api/roles` | RF-008 | ADMIN |
 | `POST /api/categorias` | RF-010 | ADMIN |
 | `GET /api/categorias` | RF-012 | ADMIN y CAJERO |
@@ -96,16 +97,30 @@ Un token ausente, inválido, vencido o revocado responde 401; un rol sin permiso
 
 ```
 src/main/java/com/pos/
-  controller/   Recibe las peticiones HTTP
-  service/      Reglas de negocio
-  repository/   Acceso a datos (Spring Data JPA)
-  model/        Entidades (tablas)
-  dto/          Objetos de entrada y salida de la API
+  usuario/      Usuarios (entidad, repositorio, servicio, controlador y dto/)
+  auth/         Login, logout y tokens revocados
+  rol/          Roles y sus permisos
+  categoria/    Categorías
   security/     JWT, filtro y reglas por rol
   exception/    Manejo global de errores
-  config/       Carga inicial de roles
+  config/       Carga inicial de roles y del primer administrador
 postman/        Colección de Postman
 ```
+
+Cada módulo agrupa su entidad, repositorio, servicio, controlador y DTO.
+
+## Llaves primarias
+
+Ninguna tabla usa llaves autogeneradas; cada una usa un dato propio de la entidad:
+
+| Tabla | Llave primaria |
+|---|---|
+| `usuarios` | `cedula` |
+| `roles` | `nombre` (en mayúsculas, ej. `ADMIN`) |
+| `categorias` | `nombre` |
+| `tokens_revocados` | `jti` |
+
+`usuarios.rol_nombre` y `rol_permisos.rol_nombre` son llaves foráneas hacia `roles.nombre`. Si la base ya existía con el esquema anterior hay que recrearla (`DROP DATABASE pos_db; CREATE DATABASE pos_db;`), porque `ddl-auto=update` no cambia llaves primarias.
 
 ## Repositorio
 

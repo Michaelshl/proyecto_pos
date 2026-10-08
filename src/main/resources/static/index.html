@@ -69,7 +69,7 @@
 <div id="vista-login" class="container">
   <div class="card login-box">
     <h2>Iniciar sesión</h2>
-    <input id="l-username" placeholder="Usuario" autocomplete="username" />
+    <input id="l-cedula" placeholder="Cédula" autocomplete="username" inputmode="numeric" />
     <input id="l-password" placeholder="Contraseña" type="password" autocomplete="current-password" />
     <button class="btn-primary" onclick="login()">Entrar</button>
     <div id="msg-login" class="msg"></div>
@@ -85,12 +85,12 @@
     <div class="form-row">
       <input id="c-nombre"   placeholder="Nombre" />
       <input id="c-apellido" placeholder="Apellido" />
-      <input id="c-username" placeholder="Username" />
+      <input id="c-cedula" placeholder="Cédula" inputmode="numeric" />
     </div>
     <div class="form-row">
       <input id="c-email"    placeholder="Email" type="email" />
       <input id="c-password" placeholder="Contraseña" type="password" />
-      <select id="c-rol"><option value="1">ADMIN</option></select>
+      <select id="c-rol"><option value="">Cargando roles...</option></select>
     </div>
     <button class="btn-primary" onclick="crearUsuario()">Crear Usuario</button>
     <div id="msg-crear" class="msg"></div>
@@ -100,8 +100,8 @@
   <div class="card solo-admin">
     <h2>Usuarios Registrados <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarUsuarios()">↺ Recargar</button></h2>
     <table>
-      <thead><tr><th>ID</th><th>Nombre</th><th>Username</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
-      <tbody id="tabla-usuarios"><tr><td colspan="7" style="text-align:center;color:#999">Cargando...</td></tr></tbody>
+      <thead><tr><th>Cédula</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody id="tabla-usuarios"><tr><td colspan="6" style="text-align:center;color:#999">Cargando...</td></tr></tbody>
     </table>
   </div>
 
@@ -109,7 +109,7 @@
   <div class="card solo-admin">
     <h2>Actualizar Usuario</h2>
     <div class="form-row">
-      <input id="u-id"       placeholder="ID del usuario" type="number" style="max-width:100px" />
+      <input id="u-cedula"   placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
       <input id="u-nombre"   placeholder="Nuevo nombre" />
       <input id="u-apellido" placeholder="Nuevo apellido" />
       <input id="u-email"    placeholder="Nuevo email" type="email" />
@@ -122,7 +122,7 @@
   <div class="card solo-admin">
     <h2>Inactivar Usuario</h2>
     <div class="form-row">
-      <input id="i-id"     placeholder="ID del usuario" type="number" style="max-width:100px" />
+      <input id="i-cedula" placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
       <input id="i-motivo" placeholder="Motivo de inactivación" style="flex:3" />
     </div>
     <button class="btn-danger" onclick="inactivarUsuario()">Inactivar</button>
@@ -133,7 +133,7 @@
   <div class="card solo-admin">
     <h2>Buscar Usuario</h2>
     <div class="form-row">
-      <input id="b-username" placeholder="Username" />
+      <input id="b-cedula" placeholder="Cédula" inputmode="numeric" />
       <input id="b-email"    placeholder="o Email" type="email" />
     </div>
     <button class="btn-primary" onclick="buscarUsuario()">Buscar</button>
@@ -144,8 +144,8 @@
   <div class="card solo-admin">
     <h2>Asignar Rol a un Usuario</h2>
     <div class="form-row">
-      <input id="a-id" placeholder="ID del usuario" type="number" style="max-width:100px" />
-      <select id="a-rol"><option value="1">ADMIN</option></select>
+      <input id="a-cedula" placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
+      <select id="a-rol"><option value="">Cargando roles...</option></select>
     </div>
     <button class="btn-warning" onclick="asignarRol()">Asignar rol</button>
     <div id="msg-asignar" class="msg"></div>
@@ -175,8 +175,8 @@
     </div>
     <div id="msg-categoria" class="msg"></div>
     <table style="margin-top:16px">
-      <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th></tr></thead>
-      <tbody id="tabla-categorias"><tr><td colspan="3" style="text-align:center;color:#999">Pulse Listar</td></tr></tbody>
+      <thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
+      <tbody id="tabla-categorias"><tr><td colspan="2" style="text-align:center;color:#999">Pulse Listar</td></tr></tbody>
     </table>
   </div>
 
@@ -187,18 +187,18 @@
   let token = null;
 
   async function login() {
-    const username = document.getElementById('l-username').value.trim();
+    const cedula = document.getElementById('l-cedula').value.trim();
     const password = document.getElementById('l-password').value;
     const msg = document.getElementById('msg-login');
-    if (!username || !password) {
-      mostrar('msg-login', false, 'Ingrese usuario y contraseña');
+    if (!cedula || !password) {
+      mostrar('msg-login', false, 'Ingrese cédula y contraseña');
       return;
     }
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ cedula, password })
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -209,7 +209,7 @@
       msg.style.display = 'none';
       document.getElementById('l-password').value = '';
       const rol = rolDelToken(token);
-      document.getElementById('status').textContent = 'Conectado como ' + username + (rol ? ' (' + rol + ')' : '');
+      document.getElementById('status').textContent = 'Conectado como ' + cedula + (rol ? ' (' + rol + ')' : '');
       aplicarRol(rol);
       mostrarVista(true);
       if (rol === 'ADMIN') {
@@ -251,9 +251,13 @@
       const res = await fetch('/api/roles', { headers: { 'Authorization': 'Bearer ' + token } });
       if (!res.ok) return;
       const roles = await res.json();
-      const opciones = roles.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
+      const opciones = roles.map(r => `<option value="${esc(r.nombre)}">${esc(r.nombre)}</option>`).join('');
       select.innerHTML = opciones;
       document.getElementById('a-rol').innerHTML = opciones;
+      if (roles.some(r => r.nombre === 'CAJERO')) {
+        select.value = 'CAJERO';
+        document.getElementById('a-rol').value = 'CAJERO';
+      }
     } catch (e) {
       // se conserva la opción por defecto del select
     }
@@ -266,29 +270,28 @@
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 404) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">Sin usuarios aún</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999">Sin usuarios aún</td></tr>';
         return;
       }
       const usuarios = await res.json();
       if (!Array.isArray(usuarios) || usuarios.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">Sin usuarios</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999">Sin usuarios</td></tr>';
         return;
       }
       tbody.innerHTML = usuarios.map(u => `
         <tr>
-          <td>${u.id}</td>
-          <td>${u.nombre} ${u.apellido}</td>
-          <td>${u.username}</td>
+          <td>${esc(u.cedula)}</td>
+          <td>${esc(u.nombre)} ${esc(u.apellido)}</td>
           <td>${u.email}</td>
           <td>${u.rol}</td>
           <td><span class="badge ${u.activo ? 'badge-active' : 'badge-inactive'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
           <td>
-            <button class="btn-warning" style="font-size:12px;padding:4px 10px" onclick="fillActualizar(${u.id},'${u.nombre}','${u.apellido}','${u.email}')">Editar</button>
-            <button class="btn-danger"  style="font-size:12px;padding:4px 10px;margin-left:4px" onclick="fillInactivar(${u.id})">Inactivar</button>
+            <button class="btn-warning" style="font-size:12px;padding:4px 10px" onclick="fillActualizar('${u.cedula}','${u.nombre}','${u.apellido}','${u.email}')">Editar</button>
+            <button class="btn-danger"  style="font-size:12px;padding:4px 10px;margin-left:4px" onclick="fillInactivar('${u.cedula}')">Inactivar</button>
           </td>
         </tr>`).join('');
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">Sin usuarios aún</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999">Sin usuarios aún</td></tr>';
     }
   }
 
@@ -296,10 +299,10 @@
     const body = {
       nombre:   document.getElementById('c-nombre').value,
       apellido: document.getElementById('c-apellido').value,
-      username: document.getElementById('c-username').value,
+      cedula:   document.getElementById('c-cedula').value.trim(),
       email:    document.getElementById('c-email').value,
       password: document.getElementById('c-password').value,
-      rolId:    parseInt(document.getElementById('c-rol').value)
+      rol:      document.getElementById('c-rol').value
     };
     const res = await fetch('/api/usuarios', {
       method: 'POST',
@@ -311,7 +314,7 @@
       msg.className = 'msg msg-ok'; msg.style.display = 'block';
       msg.textContent = '✅ Usuario creado correctamente';
       cargarUsuarios();
-      ['c-nombre','c-apellido','c-username','c-email','c-password'].forEach(id => document.getElementById(id).value = '');
+      ['c-nombre','c-apellido','c-cedula','c-email','c-password'].forEach(id => document.getElementById(id).value = '');
     } else {
       const err = await res.json();
       msg.className = 'msg msg-err'; msg.style.display = 'block';
@@ -320,13 +323,13 @@
   }
 
   async function actualizarUsuario() {
-    const id = document.getElementById('u-id').value;
+    const cedula = document.getElementById('u-cedula').value.trim();
     const body = {
       nombre:   document.getElementById('u-nombre').value,
       apellido: document.getElementById('u-apellido').value,
       email:    document.getElementById('u-email').value
     };
-    const res = await fetch(`/api/usuarios/${id}`, {
+    const res = await fetch(`/api/usuarios/${encodeURIComponent(cedula)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify(body)
@@ -343,9 +346,9 @@
   }
 
   async function inactivarUsuario() {
-    const id = document.getElementById('i-id').value;
+    const cedula = document.getElementById('i-cedula').value.trim();
     const motivo = document.getElementById('i-motivo').value;
-    const res = await fetch(`/api/usuarios/${id}/inactivar`, {
+    const res = await fetch(`/api/usuarios/${encodeURIComponent(cedula)}/inactivar`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({ motivo })
@@ -361,16 +364,16 @@
     }
   }
 
-  function fillActualizar(id, nombre, apellido, email) {
-    document.getElementById('u-id').value = id;
+  function fillActualizar(cedula, nombre, apellido, email) {
+    document.getElementById('u-cedula').value = cedula;
     document.getElementById('u-nombre').value = nombre;
     document.getElementById('u-apellido').value = apellido;
     document.getElementById('u-email').value = email;
     document.getElementById('msg-actualizar').style.display = 'none';
   }
 
-  function fillInactivar(id) {
-    document.getElementById('i-id').value = id;
+  function fillInactivar(cedula) {
+    document.getElementById('i-cedula').value = cedula;
     document.getElementById('i-motivo').value = '';
     document.getElementById('msg-inactivar').style.display = 'none';
   }
@@ -407,25 +410,25 @@
   }
 
   async function buscarUsuario() {
-    const username = document.getElementById('b-username').value.trim();
+    const cedula = document.getElementById('b-cedula').value.trim();
     const email = document.getElementById('b-email').value.trim();
-    const param = username ? 'username=' + encodeURIComponent(username)
+    const param = cedula ? 'cedula=' + encodeURIComponent(cedula)
                            : 'email=' + encodeURIComponent(email);
     const r = await llamar('GET', '/api/usuarios/buscar?' + param);
     if (r.ok) {
       const u = r.datos;
-      mostrar('msg-buscar', true, `ID ${u.id} · ${u.nombre} ${u.apellido} · ${u.username} · ${u.email} · ${u.rol} · ${u.activo ? 'Activo' : 'Inactivo'}`);
+      mostrar('msg-buscar', true, `Cédula ${u.cedula} · ${u.nombre} ${u.apellido} · ${u.email} · ${u.rol} · ${u.activo ? 'Activo' : 'Inactivo'}`);
     } else {
       mostrar('msg-buscar', false, detalle(r, 'Error al buscar'));
     }
   }
 
   async function asignarRol() {
-    const id = document.getElementById('a-id').value;
-    const rolId = parseInt(document.getElementById('a-rol').value);
-    const r = await llamar('PATCH', `/api/usuarios/${id}/rol`, { rolId });
+    const cedula = document.getElementById('a-cedula').value.trim();
+    const rol = document.getElementById('a-rol').value;
+    const r = await llamar('PATCH', `/api/usuarios/${encodeURIComponent(cedula)}/rol`, { rol });
     if (r.ok) {
-      mostrar('msg-asignar', true, `Rol de ${r.datos.username} ahora es ${r.datos.rol}`);
+      mostrar('msg-asignar', true, `Rol de ${r.datos.cedula} ahora es ${r.datos.rol}`);
       cargarUsuarios();
     } else {
       mostrar('msg-asignar', false, detalle(r, 'Error al asignar rol'));
@@ -467,16 +470,16 @@
     const tbody = document.getElementById('tabla-categorias');
     const r = await llamar('GET', '/api/categorias');
     if (!r.ok) {
-      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999">No se pudo listar</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#999">No se pudo listar</td></tr>';
       mostrar('msg-categoria', false, detalle(r, 'Error al listar categorías'));
       return;
     }
     if (r.datos.categorias.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999">Sin categorías</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#999">Sin categorías</td></tr>';
       return;
     }
     tbody.innerHTML = r.datos.categorias.map(c =>
-      `<tr><td>${c.id}</td><td>${esc(c.nombre)}</td><td>${esc(c.descripcion)}</td></tr>`).join('');
+      `<tr><td>${esc(c.nombre)}</td><td>${esc(c.descripcion)}</td></tr>`).join('');
   }
 
   async function logout() {
@@ -484,7 +487,7 @@
     token = null;
     mostrarVista(false);
     document.getElementById('msg-login').style.display = 'none';
-    document.getElementById('l-username').focus();
+    document.getElementById('l-cedula').focus();
   }
 
   document.getElementById('l-password').addEventListener('keydown', e => {

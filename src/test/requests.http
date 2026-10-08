@@ -1,10 +1,10 @@
 ### Login (guarda el token para las demás peticiones)
-# Definir adminUser y adminPassword en http-client.private.env.json (no se versiona).
+# Definir adminCedula y adminPassword en http-client.private.env.json (no se versiona).
 POST http://localhost:8081/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "{{adminUser}}",
+  "cedula": "{{adminCedula}}",
   "password": "{{adminPassword}}"
 }
 
@@ -22,14 +22,14 @@ Authorization: Bearer {{token}}
 {
   "nombre": "Juan",
   "apellido": "Perez",
-  "username": "jperez",
+  "cedula": "1020304050",
   "email": "jperez@pos.com",
   "password": "password123",
-  "rolId": 2
+  "rol": "CAJERO"
 }
 
-### Consultar usuario por username
-GET http://localhost:8081/api/usuarios/buscar?username=jperez
+### Consultar usuario por cédula
+GET http://localhost:8081/api/usuarios/buscar?cedula=1020304050
 Authorization: Bearer {{token}}
 
 ### Consultar usuario por email
@@ -41,7 +41,7 @@ GET http://localhost:8081/api/usuarios
 Authorization: Bearer {{token}}
 
 ### Actualizar usuario
-PUT http://localhost:8081/api/usuarios/2
+PUT http://localhost:8081/api/usuarios/1020304050
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -52,16 +52,16 @@ Authorization: Bearer {{token}}
 }
 
 ### Asignar rol a usuario
-PATCH http://localhost:8081/api/usuarios/2/rol
+PATCH http://localhost:8081/api/usuarios/1020304050/rol
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "rolId": 2
+  "rol": "CAJERO"
 }
 
 ### Inactivar usuario
-PATCH http://localhost:8081/api/usuarios/2/inactivar
+PATCH http://localhost:8081/api/usuarios/1020304050/inactivar
 Content-Type: application/json
 Authorization: Bearer {{token}}
 

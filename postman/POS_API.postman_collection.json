@@ -10,12 +10,12 @@
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8081" },
-    { "key": "adminUser", "value": "" },
+    { "key": "adminCedula", "value": "" },
     { "key": "adminPassword", "value": "" },
     { "key": "token", "value": "" },
     { "key": "tokenCajero", "value": "" },
     { "key": "tokenTemp", "value": "" },
-    { "key": "usuarioId", "value": "" }
+    { "key": "usuarioCedula", "value": "" }
   ],
   "item": [
     {
@@ -32,7 +32,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/auth/login",
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{adminUser}}\",\n  \"password\": \"{{adminPassword}}\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"cedula\": \"{{adminCedula}}\",\n  \"password\": \"{{adminPassword}}\"\n}" }
           }
         },
         {
@@ -45,7 +45,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/auth/login",
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{adminUser}}\",\n  \"password\": \"incorrecta\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"cedula\": \"{{adminCedula}}\",\n  \"password\": \"incorrecta\"\n}" }
           }
         },
         {
@@ -69,15 +69,15 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/usuarios",
-            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Caja\",\n  \"apellido\": \"Uno\",\n  \"username\": \"cajero1\",\n  \"email\": \"cajero1@pos.com\",\n  \"password\": \"cajero123\",\n  \"rolId\": 1\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Caja\",\n  \"apellido\": \"Uno\",\n  \"cedula\": \"1000000001\",\n  \"email\": \"cajero1@pos.com\",\n  \"password\": \"cajero123\",\n  \"rol\": \"CAJERO\"\n}" }
           }
         },
         {
-          "name": "Consultar usuario por username (RF-006)",
+          "name": "Consultar usuario por cédula (RF-006)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-            "pm.test('200 y guarda id', () => { pm.response.to.have.status(200); pm.collectionVariables.set('usuarioId', pm.response.json().id); });"
+            "pm.test('200 y guarda cédula', () => { pm.response.to.have.status(200); pm.collectionVariables.set('usuarioCedula', pm.response.json().cedula); });"
           ] } }],
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/usuarios/buscar?username=cajero1", "host": ["{{baseUrl}}"], "path": ["api","usuarios","buscar"], "query": [{ "key": "username", "value": "cajero1" }] } }
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/usuarios/buscar?cedula=1000000001", "host": ["{{baseUrl}}"], "path": ["api","usuarios","buscar"], "query": [{ "key": "cedula", "value": "1000000001" }] } }
         },
         {
           "name": "Consultar usuario por email (RF-006)",
@@ -91,7 +91,7 @@
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('404 con mensaje', () => { pm.response.to.have.status(404); pm.expect(pm.response.json().message).to.include('Sin resultados'); });"
           ] } }],
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/usuarios/buscar?username=noexiste", "host": ["{{baseUrl}}"], "path": ["api","usuarios","buscar"], "query": [{ "key": "username", "value": "noexiste" }] } }
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/usuarios/buscar?cedula=999999999", "host": ["{{baseUrl}}"], "path": ["api","usuarios","buscar"], "query": [{ "key": "cedula", "value": "999999999" }] } }
         },
         {
           "name": "Listar usuarios",
@@ -108,7 +108,7 @@
           "request": {
             "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}",
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioCedula}}",
             "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Caja\",\n  \"apellido\": \"Uno\",\n  \"email\": \"cajero1@pos.com\"\n}" }
           }
         },
@@ -120,8 +120,8 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}/rol",
-            "body": { "mode": "raw", "raw": "{\n  \"rolId\": 2\n}" }
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioCedula}}/rol",
+            "body": { "mode": "raw", "raw": "{\n  \"rol\": \"CAJERO\"\n}" }
           }
         },
         {
@@ -132,8 +132,8 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/api/usuarios/{{usuarioId}}/rol",
-            "body": { "mode": "raw", "raw": "{\n  \"rolId\": 999\n}" }
+            "url": "{{baseUrl}}/api/usuarios/{{usuarioCedula}}/rol",
+            "body": { "mode": "raw", "raw": "{\n  \"rol\": \"NOEXISTE\"\n}" }
           }
         }
       ]
@@ -205,7 +205,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/auth/login",
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"cajero1\",\n  \"password\": \"cajero123\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"cedula\": \"1000000001\",\n  \"password\": \"cajero123\"\n}" }
           }
         },
         {
@@ -259,7 +259,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/auth/login",
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{adminUser}}\",\n  \"password\": \"{{adminPassword}}\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"cedula\": \"{{adminCedula}}\",\n  \"password\": \"{{adminPassword}}\"\n}" }
           }
         },
         {
