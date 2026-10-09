@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,7 +29,8 @@ public class RolService {
         Rol rol = new Rol();
         rol.setNombre(nombre);
         rol.setDescripcion(request.getDescripcion());
-        rol.setPermisos(new ArrayList<>(request.getPermisos()));
+        // Sin repetidos: (rol, permiso) es la llave primaria de rol_permisos.
+        rol.setPermisos(new ArrayList<>(new LinkedHashSet<>(request.getPermisos())));
         rolRepository.save(rol);
 
         return toResponse(rol);

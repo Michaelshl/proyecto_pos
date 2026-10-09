@@ -22,7 +22,7 @@ Java 17 · Spring Boot 3.5 · Spring Security 6 · Spring Data JPA (Hibernate) �
 CREATE DATABASE pos_db;
 ```
 
-Las tablas se crean solas al arrancar (`ddl-auto=update`), y los roles `ADMIN` y `CAJERO` también.
+Las tablas las crea Flyway al arrancar (ver *Migraciones de la base de datos*), y los roles `ADMIN` y `CAJERO` también.
 
 **2. Configurar los secretos**
 
@@ -134,8 +134,28 @@ Ninguna tabla usa llaves autogeneradas; cada una usa un dato propio de la entida
 | `categorias` | `nombre` |
 | `tokens_revocados` | `jti` |
 
-`usuarios.rol_nombre` y `rol_permisos.rol_nombre` son llaves foráneas hacia `roles.nombre`. Si la base ya existía con el esquema anterior hay que recrearla (`DROP DATABASE pos_db; CREATE DATABASE pos_db;`), porque `ddl-auto=update` no cambia llaves primarias.
+`usuarios.rol_nombre` y `rol_permisos.rol_nombre` son llaves foráneas hacia `roles.nombre`.
 
 ## Repositorio
 
 Ramas: `main` (código estable, entregado) y `develop` (trabajo en curso; cada funcionalidad nueva sale de ahí en una rama `feature/...`). La entrega del Sprint 1 quedó marcada con la etiqueta `sprint-1`.
+
+## Migraciones de la base de datos
+
+El esquema lo manejan scripts SQL versionados con [Flyway](https://flywaydb.org), en `src/main/resources/db/migration/`:
+
+```
+V1__esquema_inicial.sql      usuarios, roles, rol_permisos, categorias, tokens_revocados
+V2__...                      (siguientes sprints)
+```
+
+Al arrancar, Flyway compara los scripts con la tabla `flyway_schema_history` de la base y ejecuta solo los que faltan, así que una base nueva o una antigua quedan al día sin borrar datos. Hibernate solo valida (`ddl-auto=validate`): si una entidad no coincide con la base, la aplicación no arranca y el mensaje dice qué columna falta.
+
+Para cambiar el esquema:
+1. Crear un archivo nuevo con el siguiente número, por ejemplo `V2__productos_y_clientes.sql`. Guion bajo doble entre el número y la descripción.
+2. **Nunca editar un script que ya se aplicó**: Flyway detecta el cambio y no deja arrancar. Una corrección va en un script nuevo.
+3. Actualizar la entidad JPA y el diagrama (`docs/modelo-de-datos.md`).
+
+Las pruebas automáticas usan H2 y arman el esquema desde las entidades, sin Flyway.
+
+Si la base `pos_db` se creó antes de Flyway (con `ddl-auto=update`), hay que recrearla una sola vez: `DROP DATABASE pos_db; CREATE DATABASE pos_db;`.

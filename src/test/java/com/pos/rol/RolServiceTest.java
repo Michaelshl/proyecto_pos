@@ -47,6 +47,17 @@ class RolServiceTest {
     }
 
     @Test
+    void crearEliminaPermisosRepetidos() {
+        when(rolRepository.existsById("SUPERVISOR")).thenReturn(false);
+        RolRequest r = solicitud("supervisor");
+        r.setPermisos(List.of("VENTAS_VER", "REPORTES_VER", "VENTAS_VER"));
+
+        RolResponse resp = service.crear(r);
+
+        assertEquals(List.of("VENTAS_VER", "REPORTES_VER"), resp.getPermisos());
+    }
+
+    @Test
     void crearConNombreRepetidoDa400() {
         when(rolRepository.existsById("ADMIN")).thenReturn(true);
 
