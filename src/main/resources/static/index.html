@@ -61,6 +61,20 @@
     .subtabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
     .subtab { background: white; color: #1a1a2e; border: 1px solid #1a1a2e; padding: 6px 16px; font-size: 13px; }
     .subtab.activa { background: #1a1a2e; color: white; }
+    .campo-auto { position: relative; flex: 1; min-width: 200px; max-width: 320px; }
+    .campo-auto input { width: 100%; }
+    .lista-auto { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; background: white;
+      border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-height: 260px; overflow-y: auto; display: none; }
+    .lista-auto div { padding: 8px 12px; cursor: pointer; font-size: 14px; }
+    .lista-auto div:hover, .lista-auto div.activo { background: #e9ecf5; }
+    .modal-fondo { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none;
+      align-items: center; justify-content: center; z-index: 50; }
+    .modal { background: white; border-radius: 8px; padding: 24px; width: 90%; max-width: 460px; }
+    .modal h3 { font-size: 17px; margin-bottom: 14px; color: #1a1a2e; }
+    .modal p { font-size: 14px; margin-bottom: 6px; color: #333; word-break: break-word; }
+    .modal .acciones { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .btn-sec { background: #e4e6eb; color: #333; }
     .panel, .subpanel { display: none; }
     .panel.activo, .subpanel.activo { display: block; }
   </style>
@@ -135,7 +149,7 @@
     <div class="card subpanel" id="s-buscar">
       <h2>Buscar Usuario</h2>
       <div class="form-row">
-        <input id="b-cedula" placeholder="Cédula" inputmode="numeric" />
+        <div class="campo-auto"><input id="b-cedula" placeholder="Cédula, nombre o apellido" autocomplete="off" /><div class="lista-auto" id="lista-b-cedula"></div></div>
         <input id="b-email"    placeholder="o Email" type="email" />
       </div>
       <button class="btn-primary" onclick="buscarUsuario()">Buscar</button>
@@ -146,7 +160,7 @@
     <div class="card subpanel" id="s-actualizar">
       <h2>Actualizar Usuario</h2>
       <div class="form-row">
-        <input id="u-cedula"   placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
+        <div class="campo-auto"><input id="u-cedula" placeholder="Cédula, nombre o apellido" autocomplete="off" /><div class="lista-auto" id="lista-u-cedula"></div></div>
         <input id="u-nombre"   placeholder="Nuevo nombre" />
         <input id="u-apellido" placeholder="Nuevo apellido" />
         <input id="u-email"    placeholder="Nuevo email" type="email" />
@@ -159,7 +173,7 @@
     <div class="card subpanel" id="s-inactivar">
       <h2>Inactivar Usuario</h2>
       <div class="form-row">
-        <input id="i-cedula" placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
+        <div class="campo-auto"><input id="i-cedula" placeholder="Cédula, nombre o apellido" autocomplete="off" /><div class="lista-auto" id="lista-i-cedula"></div></div>
         <input id="i-motivo" placeholder="Motivo de inactivación" style="flex:3" />
       </div>
       <button class="btn-danger" onclick="inactivarUsuario()">Inactivar</button>
@@ -170,7 +184,7 @@
     <div class="card subpanel" id="s-asignar">
       <h2>Asignar Rol a un Usuario</h2>
       <div class="form-row">
-        <input id="a-cedula" placeholder="Cédula del usuario" inputmode="numeric" style="max-width:160px" />
+        <div class="campo-auto"><input id="a-cedula" placeholder="Cédula, nombre o apellido" autocomplete="off" /><div class="lista-auto" id="lista-a-cedula"></div></div>
         <select id="a-rol"><option value="">Cargando roles...</option></select>
       </div>
       <button class="btn-warning" onclick="asignarRol()">Asignar rol</button>
@@ -213,6 +227,17 @@
     </div>
   </section>
 
+</div>
+
+<div id="modal-fondo" class="modal-fondo">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <h3 id="modal-titulo"></h3>
+    <div id="modal-cuerpo"></div>
+    <div class="acciones">
+      <button id="modal-cancelar" class="btn-sec">Cancelar</button>
+      <button id="modal-aceptar"></button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -371,47 +396,7 @@
     }
   }
 
-  async function actualizarUsuario() {
-    const cedula = document.getElementById('u-cedula').value.trim();
-    const body = {
-      nombre:   document.getElementById('u-nombre').value,
-      apellido: document.getElementById('u-apellido').value,
-      email:    document.getElementById('u-email').value
-    };
-    const res = await fetch(`/api/usuarios/${encodeURIComponent(cedula)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify(body)
-    });
-    const msg = document.getElementById('msg-actualizar');
-    if (res.ok) {
-      msg.className = 'msg msg-ok'; msg.style.display = 'block';
-      msg.textContent = 'Usuario actualizado';
-      cargarUsuarios();
-    } else {
-      msg.className = 'msg msg-err'; msg.style.display = 'block';
-      msg.textContent = 'Error al actualizar';
-    }
-  }
 
-  async function inactivarUsuario() {
-    const cedula = document.getElementById('i-cedula').value.trim();
-    const motivo = document.getElementById('i-motivo').value;
-    const res = await fetch(`/api/usuarios/${encodeURIComponent(cedula)}/inactivar`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ motivo })
-    });
-    const msg = document.getElementById('msg-inactivar');
-    if (res.ok) {
-      msg.className = 'msg msg-ok'; msg.style.display = 'block';
-      msg.textContent = 'Usuario inactivado';
-      cargarUsuarios();
-    } else {
-      msg.className = 'msg msg-err'; msg.style.display = 'block';
-      msg.textContent = 'Error al inactivar';
-    }
-  }
 
   function fillActualizar(cedula, nombre, apellido, email) {
     document.getElementById('u-cedula').value = cedula;
@@ -427,6 +412,210 @@
     document.getElementById('i-motivo').value = '';
     document.getElementById('msg-inactivar').style.display = 'none';
     abrirSub('inactivar');
+  }
+
+  // ---------- Ventana de confirmación ----------
+  // Devuelve una promesa: true si el administrador acepta, false si cancela o pulsa Escape.
+  // El foco queda en Cancelar para que un Enter accidental no ejecute la acción.
+  function confirmar(titulo, lineas, textoAceptar, claseAceptar) {
+    return new Promise(resolve => {
+      const fondo = document.getElementById('modal-fondo');
+      const aceptar = document.getElementById('modal-aceptar');
+      const cancelar = document.getElementById('modal-cancelar');
+      document.getElementById('modal-titulo').textContent = titulo;
+      const cuerpo = document.getElementById('modal-cuerpo');
+      cuerpo.innerHTML = '';
+      lineas.forEach(linea => {
+        const p = document.createElement('p');
+        p.textContent = linea;
+        cuerpo.appendChild(p);
+      });
+      aceptar.textContent = textoAceptar;
+      aceptar.className = claseAceptar;
+      fondo.style.display = 'flex';
+
+      const teclas = e => { if (e.key === 'Escape') cerrar(false); };
+      const cerrar = valor => {
+        fondo.style.display = 'none';
+        aceptar.onclick = null;
+        cancelar.onclick = null;
+        document.removeEventListener('keydown', teclas);
+        resolve(valor);
+      };
+      aceptar.onclick = () => cerrar(true);
+      cancelar.onclick = () => cerrar(false);
+      document.addEventListener('keydown', teclas);
+      cancelar.focus();
+    });
+  }
+
+  // ---------- Autocompletado de usuarios ----------
+  // Al escribir 2 o más caracteres muestra "cédula · nombre apellido" de las coincidencias.
+  // Al elegir una, deja su cédula en el campo y llama a alElegir (si se indicó).
+  function activarAutocompletado(idInput, alElegir) {
+    const input = document.getElementById(idInput);
+    const lista = document.getElementById('lista-' + idInput);
+    let items = [];
+    let indice = -1;
+    let temporizador = null;
+    let turno = 0;
+
+    function ocultar() {
+      lista.style.display = 'none';
+      lista.innerHTML = '';
+      items = [];
+      indice = -1;
+    }
+
+    function pintar() {
+      lista.innerHTML = '';
+      items.forEach((s, i) => {
+        const fila = document.createElement('div');
+        if (i === indice) fila.className = 'activo';
+        fila.textContent = s.cedula + ' · ' + s.nombre + ' ' + s.apellido;
+        // mousedown (y no click) para elegir antes de que el campo pierda el foco
+        fila.onmousedown = e => { e.preventDefault(); elegir(i); };
+        lista.appendChild(fila);
+      });
+      lista.style.display = items.length ? 'block' : 'none';
+    }
+
+    function elegir(i) {
+      const s = items[i];
+      input.value = s.cedula;
+      ocultar();
+      if (alElegir) alElegir(s);
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(temporizador);
+      const texto = input.value.trim();
+      if (texto.length < 2) { ocultar(); return; }
+      // Espera 250 ms sin teclear para no consultar con cada letra.
+      temporizador = setTimeout(async () => {
+        const mio = ++turno;
+        const r = await llamar('GET', '/api/usuarios/sugerencias?q=' + encodeURIComponent(texto));
+        if (mio !== turno) return;   // llegó una respuesta vieja
+        items = (r.ok && Array.isArray(r.datos)) ? r.datos : [];
+        indice = -1;
+        pintar();
+      }, 250);
+    });
+
+    input.addEventListener('keydown', e => {
+      if (!items.length) return;
+      if (e.key === 'ArrowDown') { indice = (indice + 1) % items.length; pintar(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { indice = (indice - 1 + items.length) % items.length; pintar(); e.preventDefault(); }
+      else if (e.key === 'Enter' && indice >= 0) { elegir(indice); e.preventDefault(); }
+      else if (e.key === 'Escape') { ocultar(); }
+    });
+
+    input.addEventListener('blur', ocultar);
+  }
+
+  // Trae la ficha completa de un usuario por su cédula (null si no existe).
+  async function obtenerUsuario(cedula) {
+    const r = await llamar('GET', '/api/usuarios/buscar?cedula=' + encodeURIComponent(cedula));
+    return r.ok ? r.datos : null;
+  }
+
+  function nombreCompleto(u) {
+    const texto = ((u.nombre || '') + ' ' + (u.apellido || '')).trim();
+    return texto || u.cedula;
+  }
+
+  // Al elegir a alguien en Actualizar, se cargan sus datos actuales en el formulario.
+  async function cargarParaActualizar(cedula) {
+    const u = await obtenerUsuario(cedula);
+    if (!u) { mostrar('msg-actualizar', false, 'No se pudo cargar el usuario'); return; }
+    document.getElementById('u-nombre').value = u.nombre || '';
+    document.getElementById('u-apellido').value = u.apellido || '';
+    document.getElementById('u-email').value = u.email || '';
+    document.getElementById('msg-actualizar').style.display = 'none';
+  }
+
+  async function actualizarUsuario() {
+    const cedula = document.getElementById('u-cedula').value.trim();
+    if (!cedula) { mostrar('msg-actualizar', false, 'Indique la cédula del usuario'); return; }
+    const actual = await obtenerUsuario(cedula);
+    if (!actual) { mostrar('msg-actualizar', false, 'No existe un usuario con esa cédula'); return; }
+
+    const nuevo = {
+      nombre:   document.getElementById('u-nombre').value.trim(),
+      apellido: document.getElementById('u-apellido').value.trim(),
+      email:    document.getElementById('u-email').value.trim()
+    };
+    // Solo se listan los campos que de verdad cambian.
+    const cambios = [];
+    [['Nombre', 'nombre'], ['Apellido', 'apellido'], ['Correo', 'email']].forEach(([etiqueta, campo]) => {
+      if ((actual[campo] || '') !== nuevo[campo]) {
+        cambios.push(etiqueta + ': ' + (actual[campo] || '(vacío)') + ' → ' + (nuevo[campo] || '(vacío)'));
+      }
+    });
+    if (cambios.length === 0) { mostrar('msg-actualizar', false, 'No hay cambios para guardar'); return; }
+
+    const acepto = await confirmar('¿Actualizar a ' + nombreCompleto(actual) + '?',
+      ['Cédula: ' + cedula].concat(cambios), 'Actualizar', 'btn-warning');
+    if (!acepto) return;
+
+    const r = await llamar('PUT', '/api/usuarios/' + encodeURIComponent(cedula), nuevo);
+    if (r.ok) {
+      mostrar('msg-actualizar', true, 'Usuario actualizado');
+      cargarUsuarios();
+    } else {
+      mostrar('msg-actualizar', false, detalle(r, 'Error al actualizar'));
+    }
+  }
+
+  async function inactivarUsuario() {
+    const cedula = document.getElementById('i-cedula').value.trim();
+    const motivo = document.getElementById('i-motivo').value.trim();
+    if (!cedula) { mostrar('msg-inactivar', false, 'Indique la cédula del usuario'); return; }
+    if (!motivo) { mostrar('msg-inactivar', false, 'Indique el motivo de la inactivación'); return; }
+    const actual = await obtenerUsuario(cedula);
+    if (!actual) { mostrar('msg-inactivar', false, 'No existe un usuario con esa cédula'); return; }
+    if (actual.activo === false) { mostrar('msg-inactivar', false, 'Ese usuario ya está inactivo'); return; }
+
+    const acepto = await confirmar('¿Inactivar a ' + nombreCompleto(actual) + '?', [
+      'Cédula: ' + cedula,
+      'Motivo: ' + motivo,
+      'No podrá iniciar sesión y esta aplicación no permite reactivarlo.'
+    ], 'Inactivar', 'btn-danger');
+    if (!acepto) return;
+
+    const r = await llamar('PATCH', '/api/usuarios/' + encodeURIComponent(cedula) + '/inactivar', { motivo });
+    if (r.ok) {
+      mostrar('msg-inactivar', true, 'Usuario inactivado');
+      document.getElementById('i-motivo').value = '';
+      cargarUsuarios();
+    } else {
+      mostrar('msg-inactivar', false, detalle(r, 'Error al inactivar'));
+    }
+  }
+
+  async function asignarRol() {
+    const cedula = document.getElementById('a-cedula').value.trim();
+    const rol = document.getElementById('a-rol').value;
+    if (!cedula) { mostrar('msg-asignar', false, 'Indique la cédula del usuario'); return; }
+    if (!rol) { mostrar('msg-asignar', false, 'Elija el rol'); return; }
+    const actual = await obtenerUsuario(cedula);
+    if (!actual) { mostrar('msg-asignar', false, 'No existe un usuario con esa cédula'); return; }
+    if (actual.rol === rol) { mostrar('msg-asignar', false, 'Ese usuario ya tiene el rol ' + rol); return; }
+
+    const acepto = await confirmar('¿Cambiar el rol de ' + nombreCompleto(actual) + '?', [
+      'Cédula: ' + cedula,
+      'Rol actual: ' + (actual.rol || '(sin rol)'),
+      'Rol nuevo: ' + rol
+    ], 'Cambiar rol', 'btn-warning');
+    if (!acepto) return;
+
+    const r = await llamar('PATCH', '/api/usuarios/' + encodeURIComponent(cedula) + '/rol', { rol });
+    if (r.ok) {
+      mostrar('msg-asignar', true, 'Rol de ' + r.datos.cedula + ' ahora es ' + r.datos.rol);
+      cargarUsuarios();
+    } else {
+      mostrar('msg-asignar', false, detalle(r, 'Error al asignar rol'));
+    }
   }
 
   function mostrar(idMsg, ok, texto) {
@@ -474,17 +663,6 @@
     }
   }
 
-  async function asignarRol() {
-    const cedula = document.getElementById('a-cedula').value.trim();
-    const rol = document.getElementById('a-rol').value;
-    const r = await llamar('PATCH', `/api/usuarios/${encodeURIComponent(cedula)}/rol`, { rol });
-    if (r.ok) {
-      mostrar('msg-asignar', true, `Rol de ${r.datos.cedula} ahora es ${r.datos.rol}`);
-      cargarUsuarios();
-    } else {
-      mostrar('msg-asignar', false, detalle(r, 'Error al asignar rol'));
-    }
-  }
 
   async function crearRol() {
     const permisos = document.getElementById('r-permisos').value
@@ -545,6 +723,11 @@
     if (e.key === 'Enter') login();
   });
 
+
+  activarAutocompletado('b-cedula', () => buscarUsuario());
+  activarAutocompletado('u-cedula', s => cargarParaActualizar(s.cedula));
+  activarAutocompletado('i-cedula');
+  activarAutocompletado('a-cedula');
 </script>
 </body>
 </html>

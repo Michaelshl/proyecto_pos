@@ -79,6 +79,7 @@ Authorization: Bearer <token>
 | `POST /api/usuarios` | RF-004 | ADMIN |
 | `PUT /api/usuarios/{cedula}` | RF-005 | ADMIN |
 | `GET /api/usuarios/buscar?cedula=` o `?email=` | RF-006 | ADMIN |
+| `GET /api/usuarios/sugerencias?q=` | Apoyo de RF-005, 006, 007 y 009 (autocompletado) | ADMIN |
 | `PATCH /api/usuarios/{cedula}/inactivar` | RF-007 | ADMIN |
 | `PATCH /api/usuarios/{cedula}/rol` | RF-009 | ADMIN |
 | `POST /api/roles` | RF-008 | ADMIN |
