@@ -5,20 +5,24 @@ import com.pos.rol.RolRepository;
 import com.pos.usuario.dto.InactivarRequest;
 import com.pos.usuario.dto.UsuarioRequest;
 import com.pos.usuario.dto.UsuarioResponse;
+import com.pos.usuario.dto.UsuarioSugerencia;
 import com.pos.usuario.dto.UsuarioUpdateRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -211,6 +215,48 @@ class UsuarioServiceTest {
                 () -> service.buscar("7777", null));
 
         assertEquals(HttpStatus.NOT_FOUND, estadoDe(e));
+    }
+
+    @Test
+    void sugerirDevuelveCedulaPrimerNombreYPrimerApellido() {
+        Usuario u = new Usuario();
+        u.setCedula("1001");
+        u.setNombre("Ana Maria");
+        u.setApellido("Lopez Gomez");
+        when(usuarioRepository.sugerir(eq("ana"), any())).thenReturn(List.of(u));
+
+        List<UsuarioSugerencia> resultado = service.sugerir("  ana ");
+
+        assertEquals(1, resultado.size());
+        assertEquals("1001", resultado.get(0).getCedula());
+        assertEquals("Ana", resultado.get(0).getNombre());
+        assertEquals("Lopez", resultado.get(0).getApellido());
+    }
+
+    @Test
+    void sugerirConMenosDeDosCaracteresNoConsultaLaBase() {
+        assertTrue(service.sugerir("a").isEmpty());
+        assertTrue(service.sugerir("  ").isEmpty());
+        assertTrue(service.sugerir(null).isEmpty());
+        verify(usuarioRepository, never()).sugerir(any(), any());
+    }
+
+    @Test
+    void sugerirQuitaLosComodinesDelLike() {
+        when(usuarioRepository.sugerir(eq("an"), any())).thenReturn(List.of());
+
+        service.sugerir("%a_n");
+
+        verify(usuarioRepository).sugerir(eq("an"), any());
+    }
+
+    @Test
+    void sugerirSoloPideUnaPaginaCorta() {
+        when(usuarioRepository.sugerir(any(), any())).thenReturn(List.of());
+
+        service.sugerir("ana");
+
+        verify(usuarioRepository).sugerir("ana", PageRequest.of(0, 8));
     }
 
     @Test

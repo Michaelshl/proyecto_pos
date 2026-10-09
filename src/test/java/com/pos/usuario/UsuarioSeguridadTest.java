@@ -38,6 +38,26 @@ class UsuarioSeguridadTest {
     }
 
     @Test
+    void sugerenciasSinTokenDa401() throws Exception {
+        mockMvc.perform(get("/api/usuarios/sugerencias").param("q", "ana"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAJERO")
+    void cajeroNoPuedeUsarSugerencias() throws Exception {
+        mockMvc.perform(get("/api/usuarios/sugerencias").param("q", "ana"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminPuedeUsarSugerencias() throws Exception {
+        mockMvc.perform(get("/api/usuarios/sugerencias").param("q", "ana"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void adminPuedeListarRoles() throws Exception {
         mockMvc.perform(get("/api/roles")).andExpect(status().isOk());

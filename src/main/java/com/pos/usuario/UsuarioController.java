@@ -4,6 +4,7 @@ import com.pos.usuario.dto.AsignarRolRequest;
 import com.pos.usuario.dto.InactivarRequest;
 import com.pos.usuario.dto.UsuarioRequest;
 import com.pos.usuario.dto.UsuarioResponse;
+import com.pos.usuario.dto.UsuarioSugerencia;
 import com.pos.usuario.dto.UsuarioUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,12 @@ public class UsuarioController {
     public ResponseEntity<UsuarioResponse> buscar(@RequestParam(required = false) String cedula,
                                                   @RequestParam(required = false) String email) {
         return ResponseEntity.ok(usuarioService.buscar(cedula, email));
+    }
+
+    // Apoyo del autocompletado: devuelve pocas coincidencias con cédula, primer nombre y primer apellido.
+    @GetMapping("/sugerencias")
+    public ResponseEntity<List<UsuarioSugerencia>> sugerencias(@RequestParam String q) {
+        return ResponseEntity.ok(usuarioService.sugerir(q));
     }
 
     @PatchMapping("/{cedula}/rol")

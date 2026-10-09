@@ -3,11 +3,13 @@ package com.pos.usuario;
 import com.pos.usuario.dto.InactivarRequest;
 import com.pos.usuario.dto.UsuarioRequest;
 import com.pos.usuario.dto.UsuarioResponse;
+import com.pos.usuario.dto.UsuarioSugerencia;
 import com.pos.usuario.dto.UsuarioUpdateRequest;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.pos.rol.Rol;
 import com.pos.rol.RolRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UsuarioService {
+
+    private static final int MAX_SUGERENCIAS = 8;
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
@@ -125,6 +129,26 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Sin resultados para la búsqueda"));
         return toResponse(usuario);
+    }
+
+    // Lista corta para el autocompletado del administrador. Con menos de 2 caracteres no consulta.
+    // Se quitan % y _ para que el texto escrito no funcione como comodín del LIKE.
+    public List<UsuarioSugerencia> sugerir(String texto) {
+        String limpio = texto == null ? "" : texto.replaceAll("[%_\\\\]", "").trim();
+        if (limpio.length() < 2) {
+            return List.of();
+        }
+        return usuarioRepository.sugerir(limpio, PageRequest.of(0, MAX_SUGERENCIAS)).stream()
+                .map(u -> new UsuarioSugerencia(
+                        u.getCedula(), primeraPalabra(u.getNombre()), primeraPalabra(u.getApellido())))
+                .collect(Collectors.toList());
+    }
+
+    private static String primeraPalabra(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return "";
+        }
+        return texto.trim().split("\\s+")[0];
     }
 
     public UsuarioResponse asignarRol(String cedula, String nombreRol) {
