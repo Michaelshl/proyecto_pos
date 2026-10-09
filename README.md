@@ -1,6 +1,6 @@
 # POS: Sistema de Punto de Venta (API REST)
 
-Backend de un sistema de punto de venta para comercio minorista. Proyecto de Desarrollo de Software II, Universidad del Valle (sede Yumbo).
+Backend de un sistema de punto de venta para comercio minorista. Proyecto de Desarrollo de Software II, Universidad del Valle (sede Yumbo). La interfaz usa por ahora el nombre de tienda de ejemplo **Allmarket** (provisional).
 
 **Estado:** Sprint 1 completo (autenticación, usuarios, roles y categorías). Es una API REST con una página de pruebas en `http://localhost:8081` (`index.html`); también se prueba con Postman, Swagger o `requests.http`.
 
