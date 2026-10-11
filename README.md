@@ -95,7 +95,7 @@ Authorization: Bearer <token>
 | `POST /api/productos/{codigo}/ajustes` | RF-019 | ADMIN |
 | `POST /api/clientes` | RF-020 | ADMIN y CAJERO |
 | `PUT /api/clientes/{numeroDocumento}` | RF-021 | ADMIN y CAJERO |
-| `GET /api/clientes/{numeroDocumento}` | Ficha del cliente | ADMIN y CAJERO |
+| `GET /api/clientes/{numeroDocumento}` | Apoyo de RF-021; base del RF-022 (Sprint 3) | ADMIN y CAJERO |
 | `GET /api/clientes/sugerencias?q=` | Apoyo de RF-021 (autocompletado) | ADMIN y CAJERO |
 
 Todos los errores responden con el mismo formato:
