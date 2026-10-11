@@ -61,6 +61,8 @@ La restricción real la hace el servidor, no la pantalla: con el cajero, las rut
 
 ## 3. Clientes (cajero o administrador)
 
+Los requisitos del Sprint 2 son solo crear y actualizar (RF-020, RF-021). La pestaña **Consultar** es un apoyo para poder ver y elegir a un cliente al actualizarlo; el RF-022 (consultar por documento o nombre) y el RF-023 (listar clientes) están planeados para el Sprint 3 y todavía no existe el listado.
+
 | # | Acción | Resultado esperado |
 |---|---|---|
 | 1 | Clientes → Crear: tipo `CC`, documento `1020304050`, nombre `Ana`, apellido `Lopez` (correo, teléfono y dirección vacíos) | "Cliente Ana Lopez creado (CC 1020304050)" |
