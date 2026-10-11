@@ -2,7 +2,7 @@
 
 Diagrama entidad-relación del sistema POS. Es el diseño de referencia: las migraciones SQL y las entidades JPA se derivan de él. Todas las llaves primarias son datos propios de la entidad (ninguna autogenerada), como pidió el profesor.
 
-Estado: borrador para revisión. Sprint 1 implementado; Sprint 2 a Sprint 5 son proyección.
+Estado: Sprints 1 y 2 implementados (migraciones `V1` y `V2` de Flyway); Sprints 3 a 5 son proyección. Único cambio respecto al diseño aprobado: `productos.motivo_inactivacion` (ver las notas más abajo).
 
 ```mermaid
 erDiagram
@@ -143,6 +143,12 @@ erDiagram
 - **Método de pago**: `metodos_pago` es el catálogo de opciones que el cliente puede usar; `pagos.metodo_pago` guarda el que finalmente se eligió. La venta no guarda método de pago, para no tener el mismo dato en dos lugares. El texto del RF-025 menciona el método de pago como dato de la venta; se ajusta cuando se implemente el Sprint 3.
 - **`ventas.estado`** toma tres valores: `EN_PROCESO`, `REGISTRADA` y `ANULADA`.
 
+## Cambios respecto al diseño aprobado
+
+- **`productos.motivo_inactivacion` (Sprint 2).** No estaba en el diagrama aprobado. El RF-017 pide un motivo al inactivar un producto, y sin esta columna el motivo se perdería. Se copió el criterio de `usuarios.motivo_inactivacion` (texto de hasta 500 caracteres, vacío mientras el producto está activo).
+- **`ajustes_stock.motivo` y `usuario_cedula` son obligatorios** (`NOT NULL`): un ajuste sin responsable o sin motivo no sirve como historial (RF-019).
+- **`clientes`:** el tipo de documento se valida en la aplicación (CC, CE, TI, NIT o PP) y no en la base de datos, para poder agregar tipos sin una migración.
+
 ## Pendiente
 
-- Los requisitos RF-001, RF-004 y RF-006 todavía dicen "nombre de usuario"; el sistema usa la cédula. Se actualizan durante el Sprint 2 junto con los demás documentos.
+- Los requisitos RF-001, RF-004 y RF-006 se actualizaron a "cédula" el 2026-10-11 (`docs/heredado-ds1/pos_requisitos_funcionales.xlsx` y su `.md`). El SRS (`SRS_Sistema_POS_completo`) y el documento de arquitectura entregado siguen con la redacción anterior (usuario por nombre de usuario, llaves autoincrementales, sin Flyway).
