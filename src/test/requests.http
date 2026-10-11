@@ -93,3 +93,66 @@ Authorization: Bearer {{token}}
 ### Listar categorías
 GET http://localhost:8081/api/categorias
 Authorization: Bearer {{token}}
+
+### Crear producto (RF-013)
+POST http://localhost:8081/api/productos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "codigo": "P001",
+  "nombre": "Coca-Cola 1.5L",
+  "descripcion": "Gaseosa",
+  "precioVenta": 5500.50,
+  "stockInicial": 10,
+  "stockMinimo": 5,
+  "categoria": "Bebidas"
+}
+
+### Actualizar producto (RF-014)
+PUT http://localhost:8081/api/productos/P001
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nombre": "Coca-Cola 1.5L Zero",
+  "descripcion": "Sin azucar",
+  "precioVenta": 5600,
+  "stockMinimo": 5,
+  "categoria": "Bebidas"
+}
+
+### Consultar producto por código (RF-015)
+GET http://localhost:8081/api/productos/P001
+Authorization: Bearer {{token}}
+
+### Listar productos con filtros (RF-016): categoria, activo y nombre son opcionales
+GET http://localhost:8081/api/productos?categoria=Bebidas&activo=true&nombre=cola
+Authorization: Bearer {{token}}
+
+### Sugerencias de productos para el autocompletado
+GET http://localhost:8081/api/productos/sugerencias?q=co
+Authorization: Bearer {{token}}
+
+### Inactivar producto (RF-017)
+PATCH http://localhost:8081/api/productos/P001/inactivar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "motivo": "Descontinuado"
+}
+
+### Consultar stock (RF-018, solo ADMIN)
+GET http://localhost:8081/api/productos/P001/stock
+Authorization: Bearer {{token}}
+
+### Ajustar stock (RF-019, solo ADMIN): cantidad positiva suma, negativa resta
+POST http://localhost:8081/api/productos/P001/ajustes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cantidad": -3,
+  "motivo": "Producto vencido"
+}

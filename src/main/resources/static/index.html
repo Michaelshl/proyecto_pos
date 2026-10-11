@@ -45,6 +45,9 @@
     .badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
     .badge-active   { background: #d4edda; color: #155724; }
     .badge-inactive { background: #f8d7da; color: #721c24; }
+    .badge-warn     { background: #fff3cd; color: #856404; margin-left: 6px; }
+    .ficha th { width: 190px; }
+    .nota { font-size: 13px; color: #666; margin-bottom: 12px; }
 
     .login-box { max-width: 380px; margin: 80px auto; }
     .login-box input { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
@@ -106,6 +109,7 @@
     <button class="tab solo-admin" id="t-usuarios" onclick="abrirPestana('usuarios')">Usuarios</button>
     <button class="tab solo-admin" id="t-roles" onclick="abrirPestana('roles')">Roles</button>
     <button class="tab" id="t-categorias" onclick="abrirPestana('categorias')">Categorías</button>
+    <button class="tab" id="t-productos" onclick="abrirPestana('productos')">Productos</button>
   </nav>
 
   <!-- PESTAÑA USUARIOS (RF-004 a RF-007 y RF-009) -->
@@ -227,6 +231,116 @@
     </div>
   </section>
 
+  <!-- PESTAÑA PRODUCTOS E INVENTARIO (RF-013 a RF-019) -->
+  <section id="p-productos" class="panel">
+    <nav class="subtabs">
+      <button class="subtab" id="st-prod-listado" onclick="abrirSub('prod-listado','productos')">Listado</button>
+      <button class="subtab" id="st-prod-consultar" onclick="abrirSub('prod-consultar','productos')">Consultar</button>
+      <button class="subtab solo-admin" id="st-prod-crear" onclick="abrirSub('prod-crear','productos')">Crear</button>
+      <button class="subtab solo-admin" id="st-prod-actualizar" onclick="abrirSub('prod-actualizar','productos')">Actualizar</button>
+      <button class="subtab solo-admin" id="st-prod-inactivar" onclick="abrirSub('prod-inactivar','productos')">Inactivar</button>
+      <button class="subtab solo-admin" id="st-prod-stock" onclick="abrirSub('prod-stock','productos')">Stock</button>
+    </nav>
+
+  <!-- LISTADO CON FILTROS (RF-016) -->
+    <div class="card subpanel" id="s-prod-listado">
+      <h2>Productos <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarProductos()">Buscar</button></h2>
+      <div class="form-row">
+        <select id="pl-categoria"><option value="">Todas las categorías</option></select>
+        <select id="pl-estado">
+          <option value="">Todos los estados</option>
+          <option value="true">Activos</option>
+          <option value="false">Inactivos</option>
+        </select>
+        <input id="pl-nombre" placeholder="Nombre contiene..." />
+      </div>
+      <div id="msg-pl" class="msg"></div>
+      <table style="margin-top:16px">
+        <thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th class="solo-admin">Acciones</th></tr></thead>
+        <tbody id="tabla-productos"><tr><td colspan="7" style="text-align:center;color:#999">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+
+  <!-- CONSULTAR PRODUCTO (RF-015) -->
+    <div class="card subpanel" id="s-prod-consultar">
+      <h2>Consultar Producto</h2>
+      <div class="form-row">
+        <div class="campo-auto"><input id="pc-codigo" placeholder="Código o nombre" autocomplete="off" /><div class="lista-auto" id="lista-pc-codigo"></div></div>
+      </div>
+      <button class="btn-primary" onclick="consultarProducto()">Consultar</button>
+      <div id="msg-pc" class="msg"></div>
+      <div id="ficha-producto"></div>
+    </div>
+
+  <!-- CREAR PRODUCTO (RF-013) -->
+    <div class="card subpanel" id="s-prod-crear">
+      <h2>Crear Producto</h2>
+      <div class="form-row">
+        <input id="pn-codigo" placeholder="Código" maxlength="30" />
+        <input id="pn-nombre" placeholder="Nombre" maxlength="150" />
+        <input id="pn-desc" placeholder="Descripción" maxlength="255" />
+      </div>
+      <div class="form-row">
+        <input id="pn-precio" placeholder="Precio de venta" type="number" min="0" step="0.01" />
+        <input id="pn-stock" placeholder="Stock inicial" type="number" min="0" step="1" />
+        <input id="pn-minimo" placeholder="Stock mínimo" type="number" min="0" step="1" />
+      </div>
+      <div class="form-row">
+        <select id="pn-categoria"><option value="">Cargando categorías...</option></select>
+        <select id="pn-activo">
+          <option value="true">Activo</option>
+          <option value="false">Inactivo</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="crearProducto()">Crear Producto</button>
+      <div id="msg-pn" class="msg"></div>
+    </div>
+
+  <!-- ACTUALIZAR PRODUCTO (RF-014) -->
+    <div class="card subpanel" id="s-prod-actualizar">
+      <h2>Actualizar Producto</h2>
+      <p class="nota">El código no se edita. El stock cambia solo con un ajuste (pestaña Stock).</p>
+      <div class="form-row">
+        <div class="campo-auto"><input id="pu-codigo" placeholder="Código o nombre" autocomplete="off" /><div class="lista-auto" id="lista-pu-codigo"></div></div>
+        <input id="pu-nombre" placeholder="Nuevo nombre" maxlength="150" />
+        <input id="pu-desc" placeholder="Nueva descripción" maxlength="255" />
+      </div>
+      <div class="form-row">
+        <input id="pu-precio" placeholder="Precio de venta" type="number" min="0" step="0.01" />
+        <input id="pu-minimo" placeholder="Stock mínimo" type="number" min="0" step="1" />
+        <select id="pu-categoria"><option value="">Cargando categorías...</option></select>
+      </div>
+      <button class="btn-warning" onclick="actualizarProducto()">Actualizar</button>
+      <div id="msg-pu" class="msg"></div>
+    </div>
+
+  <!-- INACTIVAR PRODUCTO (RF-017) -->
+    <div class="card subpanel" id="s-prod-inactivar">
+      <h2>Inactivar Producto</h2>
+      <div class="form-row">
+        <div class="campo-auto"><input id="pi-codigo" placeholder="Código o nombre" autocomplete="off" /><div class="lista-auto" id="lista-pi-codigo"></div></div>
+        <input id="pi-motivo" placeholder="Motivo de inactivación" style="flex:3" />
+      </div>
+      <button class="btn-danger" onclick="inactivarProducto()">Inactivar</button>
+      <div id="msg-pi" class="msg"></div>
+    </div>
+
+  <!-- CONSULTAR Y AJUSTAR STOCK (RF-018 y RF-019) -->
+    <div class="card subpanel" id="s-prod-stock">
+      <h2>Stock de un Producto</h2>
+      <div class="form-row">
+        <div class="campo-auto"><input id="ps-codigo" placeholder="Código o nombre" autocomplete="off" /><div class="lista-auto" id="lista-ps-codigo"></div></div>
+        <button class="btn-primary" onclick="consultarStock()">Consultar stock</button>
+      </div>
+      <div class="form-row">
+        <input id="ps-cantidad" placeholder="Ajuste (+ suma, - resta)" type="number" step="1" />
+        <input id="ps-motivo" placeholder="Motivo del ajuste" maxlength="255" style="flex:3" />
+      </div>
+      <button class="btn-warning" onclick="ajustarStock()">Ajustar stock</button>
+      <div id="msg-ps" class="msg"></div>
+    </div>
+  </section>
+
 </div>
 
 <div id="modal-fondo" class="modal-fondo">
@@ -242,6 +356,7 @@
 
 <script>
   let token = null;
+  let rolActual = null;   // solo decide qué botones se pintan; la autorización real la hace el servidor
 
   async function login() {
     const cedula = document.getElementById('l-cedula').value.trim();
@@ -267,6 +382,7 @@
       document.getElementById('l-password').value = '';
       const rol = rolDelToken(token);
       document.getElementById('status').textContent = 'Conectado como ' + cedula + (rol ? ' (' + rol + ')' : '');
+      rolActual = rol;
       aplicarRol(rol);
       mostrarVista(true);
       abrirPestana(rol === 'ADMIN' ? 'usuarios' : 'categorias');
@@ -276,6 +392,8 @@
         cargarUsuarios();
       }
       cargarCategorias();
+      abrirSub('prod-listado', 'productos');
+      cargarProductos();
     } catch (e) {
       mostrar('msg-login', false, 'No se pudo conectar con el servidor');
     }
@@ -305,9 +423,11 @@
     document.getElementById('t-' + id).classList.add('activa');
   }
 
-  function abrirSub(id) {
-    document.querySelectorAll('.subpanel').forEach(el => el.classList.remove('activo'));
-    document.querySelectorAll('.subtab').forEach(el => el.classList.remove('activa'));
+  // Cada pestaña maneja sus propias subpestañas: solo toca las del panel indicado (por defecto, Usuarios).
+  function abrirSub(id, panel = 'usuarios') {
+    const contenedor = document.getElementById('p-' + panel);
+    contenedor.querySelectorAll('.subpanel').forEach(el => el.classList.remove('activo'));
+    contenedor.querySelectorAll('.subtab').forEach(el => el.classList.remove('activa'));
     document.getElementById('s-' + id).classList.add('activo');
     document.getElementById('st-' + id).classList.add('activa');
   }
@@ -449,10 +569,22 @@
     });
   }
 
-  // ---------- Autocompletado de usuarios ----------
-  // Al escribir 2 o más caracteres muestra "cédula · nombre apellido" de las coincidencias.
-  // Al elegir una, deja su cédula en el campo y llama a alElegir (si se indicó).
-  function activarAutocompletado(idInput, alElegir) {
+  // ---------- Autocompletado ----------
+  // Al escribir 2 o más caracteres consulta el endpoint de sugerencias y lista las coincidencias.
+  // Al elegir una, deja su llave en el campo y llama a alElegir (si se indicó).
+  // "fuente" dice a qué endpoint consultar y cómo mostrar cada sugerencia (por defecto, usuarios).
+  const FUENTE_USUARIOS = {
+    url: '/api/usuarios/sugerencias?q=',
+    texto: s => s.cedula + ' · ' + s.nombre + ' ' + s.apellido,
+    valor: s => s.cedula
+  };
+  const FUENTE_PRODUCTOS = {
+    url: '/api/productos/sugerencias?q=',
+    texto: s => s.codigo + ' · ' + s.nombre,
+    valor: s => s.codigo
+  };
+
+  function activarAutocompletado(idInput, alElegir, fuente = FUENTE_USUARIOS) {
     const input = document.getElementById(idInput);
     const lista = document.getElementById('lista-' + idInput);
     let items = [];
@@ -472,7 +604,7 @@
       items.forEach((s, i) => {
         const fila = document.createElement('div');
         if (i === indice) fila.className = 'activo';
-        fila.textContent = s.cedula + ' · ' + s.nombre + ' ' + s.apellido;
+        fila.textContent = fuente.texto(s);
         // mousedown (y no click) para elegir antes de que el campo pierda el foco
         fila.onmousedown = e => { e.preventDefault(); elegir(i); };
         lista.appendChild(fila);
@@ -482,7 +614,7 @@
 
     function elegir(i) {
       const s = items[i];
-      input.value = s.cedula;
+      input.value = fuente.valor(s);
       ocultar();
       if (alElegir) alElegir(s);
     }
@@ -494,7 +626,7 @@
       // Espera 250 ms sin teclear para no consultar con cada letra.
       temporizador = setTimeout(async () => {
         const mio = ++turno;
-        const r = await llamar('GET', '/api/usuarios/sugerencias?q=' + encodeURIComponent(texto));
+        const r = await llamar('GET', fuente.url + encodeURIComponent(texto));
         if (mio !== turno) return;   // llegó una respuesta vieja
         items = (r.ok && Array.isArray(r.datos)) ? r.datos : [];
         indice = -1;
@@ -703,6 +835,7 @@
       mostrar('msg-categoria', false, detalle(r, 'Error al listar categorías'));
       return;
     }
+    llenarCategorias(r.datos.categorias);
     if (r.datos.categorias.length === 0) {
       tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#999">Sin categorías</td></tr>';
       return;
@@ -711,9 +844,334 @@
       `<tr><td>${esc(c.nombre)}</td><td>${esc(c.descripcion)}</td></tr>`).join('');
   }
 
+  // ---------- Productos e inventario (RF-013 a RF-019) ----------
+  // Sin decimales cuando el precio es entero ($ 5.600) y con dos cuando no lo es ($ 4.200,50).
+  const formatoEntero = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+  const formatoDecimal = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const dinero = { format: v => (Number.isInteger(Number(v)) ? formatoEntero : formatoDecimal).format(v) };
+
+  // Para valores dentro de atributos HTML (esc no escapa las comillas).
+  function escAttr(texto) {
+    return esc(texto).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function ocultarMsg(idMsg) {
+    document.getElementById(idMsg).style.display = 'none';
+  }
+
+  function valorDe(id) {
+    return document.getElementById(id).value.trim();
+  }
+
+  // Las categorías alimentan el filtro del listado y los formularios de crear y actualizar.
+  function llenarCategorias(categorias) {
+    const opciones = categorias.map(c => `<option value="${escAttr(c.nombre)}">${esc(c.nombre)}</option>`).join('');
+    const filtro = document.getElementById('pl-categoria');
+    const elegida = filtro.value;
+    filtro.innerHTML = '<option value="">Todas las categorías</option>' + opciones;
+    filtro.value = elegida;
+    ['pn-categoria', 'pu-categoria'].forEach(id => {
+      const select = document.getElementById(id);
+      const previa = select.value;
+      select.innerHTML = opciones || '<option value="">Sin categorías: cree una primero</option>';
+      if (previa) select.value = previa;
+    });
+  }
+
+  function filaVacia(tbody, columnas, texto) {
+    tbody.innerHTML = `<tr><td colspan="${columnas}" style="text-align:center;color:#999">${esc(texto)}</td></tr>`;
+  }
+
+  function insigniaStock(p) {
+    return p.stock <= p.stockMinimo ? '<span class="badge badge-warn">Stock bajo</span>' : '';
+  }
+
+  function insigniaEstado(p) {
+    return `<span class="badge ${p.activo ? 'badge-active' : 'badge-inactive'}">${p.activo ? 'Activo' : 'Inactivo'}</span>`;
+  }
+
+  // RF-016: lista con filtros opcionales de categoría, estado y nombre.
+  async function cargarProductos() {
+    const tbody = document.getElementById('tabla-productos');
+    const esAdmin = rolActual === 'ADMIN';
+    const columnas = esAdmin ? 7 : 6;
+    const params = new URLSearchParams();
+    if (valorDe('pl-categoria')) params.set('categoria', valorDe('pl-categoria'));
+    if (valorDe('pl-estado')) params.set('activo', valorDe('pl-estado'));
+    if (valorDe('pl-nombre')) params.set('nombre', valorDe('pl-nombre'));
+
+    const r = await llamar('GET', '/api/productos' + (params.toString() ? '?' + params : ''));
+    if (!r.ok) {
+      filaVacia(tbody, columnas, 'No se pudo listar');
+      mostrar('msg-pl', false, detalle(r, 'Error al listar productos'));
+      return;
+    }
+    const productos = r.datos.productos;
+    if (productos.length === 0) {
+      filaVacia(tbody, columnas, 'Sin resultados');
+      mostrar('msg-pl', false, 'No hay productos con esos filtros');
+      return;
+    }
+    mostrar('msg-pl', true, r.datos.total + ' producto(s) encontrado(s)');
+    tbody.innerHTML = productos.map(p => `
+      <tr>
+        <td>${esc(p.codigo)}</td>
+        <td>${esc(p.nombre)}</td>
+        <td>${esc(p.categoria)}</td>
+        <td>${dinero.format(p.precioVenta)}</td>
+        <td>${p.stock}${insigniaStock(p)}</td>
+        <td>${insigniaEstado(p)}</td>
+        ${esAdmin ? `<td>
+          <button class="btn-warning" style="font-size:12px;padding:4px 10px" data-accion="editar" data-codigo="${escAttr(p.codigo)}">Editar</button>
+          <button class="btn-primary" style="font-size:12px;padding:4px 10px;margin-left:4px" data-accion="stock" data-codigo="${escAttr(p.codigo)}">Stock</button>
+          ${p.activo ? `<button class="btn-danger" style="font-size:12px;padding:4px 10px;margin-left:4px" data-accion="inactivar" data-codigo="${escAttr(p.codigo)}">Inactivar</button>` : ''}
+        </td>` : ''}
+      </tr>`).join('');
+  }
+
+  // Los botones de cada fila llevan el código en data-codigo (no en el onclick) para no inyectar texto en el JS.
+  document.getElementById('tabla-productos').addEventListener('click', e => {
+    const boton = e.target.closest('button[data-accion]');
+    if (!boton) return;
+    const codigo = boton.dataset.codigo;
+    if (boton.dataset.accion === 'editar') irActualizarProducto(codigo);
+    else if (boton.dataset.accion === 'inactivar') irInactivarProducto(codigo);
+    else if (boton.dataset.accion === 'stock') irStock(codigo);
+  });
+
+  function irActualizarProducto(codigo) {
+    document.getElementById('pu-codigo').value = codigo;
+    ocultarMsg('msg-pu');
+    cargarParaActualizarProducto(codigo);
+    abrirSub('prod-actualizar', 'productos');
+  }
+
+  function irInactivarProducto(codigo) {
+    document.getElementById('pi-codigo').value = codigo;
+    document.getElementById('pi-motivo').value = '';
+    ocultarMsg('msg-pi');
+    abrirSub('prod-inactivar', 'productos');
+  }
+
+  function irStock(codigo) {
+    document.getElementById('ps-codigo').value = codigo;
+    ocultarMsg('msg-ps');
+    consultarStock();
+    abrirSub('prod-stock', 'productos');
+  }
+
+  // Trae la ficha de un producto por su código (null si no existe).
+  async function obtenerProducto(codigo) {
+    const r = await llamar('GET', '/api/productos/' + encodeURIComponent(codigo));
+    return r.ok ? r.datos : null;
+  }
+
+  function fichaHtml(p) {
+    return `<table class="ficha" style="margin-top:16px">
+      <tr><th>Código</th><td>${esc(p.codigo)}</td></tr>
+      <tr><th>Nombre</th><td>${esc(p.nombre)}</td></tr>
+      <tr><th>Descripción</th><td>${esc(p.descripcion) || '(sin descripción)'}</td></tr>
+      <tr><th>Categoría</th><td>${esc(p.categoria)}</td></tr>
+      <tr><th>Precio de venta</th><td>${dinero.format(p.precioVenta)}</td></tr>
+      <tr><th>Stock disponible</th><td>${p.stock} (mínimo ${p.stockMinimo})${insigniaStock(p)}</td></tr>
+      <tr><th>Estado</th><td>${insigniaEstado(p)}${p.activo ? '' : ' ' + esc(p.motivoInactivacion)}</td></tr>
+    </table>`;
+  }
+
+  // RF-015: por código; si no existe ese código, se busca por nombre.
+  async function consultarProducto() {
+    const texto = valorDe('pc-codigo');
+    const ficha = document.getElementById('ficha-producto');
+    ficha.innerHTML = '';
+    if (!texto) { mostrar('msg-pc', false, 'Indique el código o el nombre del producto'); return; }
+
+    const porCodigo = await llamar('GET', '/api/productos/' + encodeURIComponent(texto));
+    if (porCodigo.ok) {
+      ocultarMsg('msg-pc');
+      ficha.innerHTML = fichaHtml(porCodigo.datos);
+      return;
+    }
+    if (porCodigo.status !== 404) { mostrar('msg-pc', false, detalle(porCodigo, 'Error al consultar')); return; }
+
+    const porNombre = await llamar('GET', '/api/productos?nombre=' + encodeURIComponent(texto));
+    if (!porNombre.ok) { mostrar('msg-pc', false, detalle(porNombre, 'Error al consultar')); return; }
+    const lista = porNombre.datos.productos;
+    if (lista.length === 0) { mostrar('msg-pc', false, 'Sin resultados para la búsqueda'); return; }
+    if (lista.length === 1) { ocultarMsg('msg-pc'); ficha.innerHTML = fichaHtml(lista[0]); return; }
+    mostrar('msg-pc', true, lista.length + ' productos coinciden; escriba el código de uno para ver su ficha');
+    ficha.innerHTML = '<table style="margin-top:16px"><thead><tr><th>Código</th><th>Nombre</th></tr></thead><tbody>'
+      + lista.map(p => `<tr><td>${esc(p.codigo)}</td><td>${esc(p.nombre)}</td></tr>`).join('') + '</tbody></table>';
+  }
+
+  // RF-013
+  async function crearProducto() {
+    const precio = valorDe('pn-precio');
+    const stock = valorDe('pn-stock');
+    const minimo = valorDe('pn-minimo');
+    if (precio === '' || stock === '' || minimo === '') {
+      mostrar('msg-pn', false, 'Complete el precio, el stock inicial y el stock mínimo');
+      return;
+    }
+    const r = await llamar('POST', '/api/productos', {
+      codigo: valorDe('pn-codigo'),
+      nombre: valorDe('pn-nombre'),
+      descripcion: valorDe('pn-desc'),
+      precioVenta: Number(precio),
+      stockInicial: Number(stock),
+      stockMinimo: Number(minimo),
+      categoria: valorDe('pn-categoria'),
+      activo: valorDe('pn-activo') === 'true'
+    });
+    if (r.ok) {
+      mostrar('msg-pn', true, `Producto ${r.datos.codigo} creado`);
+      ['pn-codigo', 'pn-nombre', 'pn-desc', 'pn-precio', 'pn-stock', 'pn-minimo'].forEach(id => document.getElementById(id).value = '');
+      cargarProductos();
+    } else {
+      mostrar('msg-pn', false, detalle(r, 'Error al crear producto'));
+    }
+  }
+
+  // Al elegir un producto en Actualizar se cargan sus datos actuales en el formulario.
+  async function cargarParaActualizarProducto(codigo) {
+    const p = await obtenerProducto(codigo);
+    if (!p) { mostrar('msg-pu', false, 'No se pudo cargar el producto'); return; }
+    document.getElementById('pu-nombre').value = p.nombre || '';
+    document.getElementById('pu-desc').value = p.descripcion || '';
+    document.getElementById('pu-precio').value = p.precioVenta;
+    document.getElementById('pu-minimo').value = p.stockMinimo;
+    document.getElementById('pu-categoria').value = p.categoria;
+    ocultarMsg('msg-pu');
+  }
+
+  // RF-014: muestra solo lo que cambia y pide confirmación.
+  async function actualizarProducto() {
+    const codigo = valorDe('pu-codigo');
+    if (!codigo) { mostrar('msg-pu', false, 'Indique el código del producto'); return; }
+    const actual = await obtenerProducto(codigo);
+    if (!actual) { mostrar('msg-pu', false, 'No existe un producto con ese código'); return; }
+    if (valorDe('pu-precio') === '' || valorDe('pu-minimo') === '') {
+      mostrar('msg-pu', false, 'Complete el precio y el stock mínimo');
+      return;
+    }
+
+    const nuevo = {
+      nombre: valorDe('pu-nombre'),
+      descripcion: valorDe('pu-desc'),
+      precioVenta: Number(valorDe('pu-precio')),
+      stockMinimo: Number(valorDe('pu-minimo')),
+      categoria: valorDe('pu-categoria')
+    };
+    const cambios = [];
+    [['Nombre', 'nombre'], ['Descripción', 'descripcion'], ['Categoría', 'categoria']].forEach(([etiqueta, campo]) => {
+      if ((actual[campo] || '') !== nuevo[campo]) {
+        cambios.push(etiqueta + ': ' + (actual[campo] || '(vacío)') + ' → ' + (nuevo[campo] || '(vacío)'));
+      }
+    });
+    if (Number(actual.precioVenta) !== nuevo.precioVenta) {
+      cambios.push('Precio: ' + dinero.format(actual.precioVenta) + ' → ' + dinero.format(nuevo.precioVenta));
+    }
+    if (actual.stockMinimo !== nuevo.stockMinimo) {
+      cambios.push('Stock mínimo: ' + actual.stockMinimo + ' → ' + nuevo.stockMinimo);
+    }
+    if (cambios.length === 0) { mostrar('msg-pu', false, 'No hay cambios para guardar'); return; }
+
+    const acepto = await confirmar('¿Actualizar ' + actual.nombre + '?', ['Código: ' + codigo].concat(cambios),
+      'Actualizar', 'btn-warning');
+    if (!acepto) return;
+
+    const r = await llamar('PUT', '/api/productos/' + encodeURIComponent(codigo), nuevo);
+    if (r.ok) {
+      mostrar('msg-pu', true, 'Producto actualizado');
+      cargarProductos();
+    } else {
+      mostrar('msg-pu', false, detalle(r, 'Error al actualizar'));
+    }
+  }
+
+  // RF-017
+  async function inactivarProducto() {
+    const codigo = valorDe('pi-codigo');
+    const motivo = valorDe('pi-motivo');
+    if (!codigo) { mostrar('msg-pi', false, 'Indique el código del producto'); return; }
+    if (!motivo) { mostrar('msg-pi', false, 'Indique el motivo de la inactivación'); return; }
+    const actual = await obtenerProducto(codigo);
+    if (!actual) { mostrar('msg-pi', false, 'No existe un producto con ese código'); return; }
+    if (actual.activo === false) { mostrar('msg-pi', false, 'Ese producto ya está inactivo'); return; }
+
+    const acepto = await confirmar('¿Inactivar ' + actual.nombre + '?', [
+      'Código: ' + codigo,
+      'Motivo: ' + motivo,
+      'No podrá incluirse en ventas y esta aplicación no permite reactivarlo.'
+    ], 'Inactivar', 'btn-danger');
+    if (!acepto) return;
+
+    const r = await llamar('PATCH', '/api/productos/' + encodeURIComponent(codigo) + '/inactivar', { motivo });
+    if (r.ok) {
+      mostrar('msg-pi', true, 'Producto inactivado');
+      document.getElementById('pi-motivo').value = '';
+      cargarProductos();
+    } else {
+      mostrar('msg-pi', false, detalle(r, 'Error al inactivar'));
+    }
+  }
+
+  // RF-018: stock actual, mínimo y alerta.
+  async function consultarStock() {
+    const codigo = valorDe('ps-codigo');
+    if (!codigo) { mostrar('msg-ps', false, 'Indique el código del producto'); return; }
+    const r = await llamar('GET', '/api/productos/' + encodeURIComponent(codigo) + '/stock');
+    if (!r.ok) { mostrar('msg-ps', false, detalle(r, 'Error al consultar el stock')); return; }
+    const s = r.datos;
+    const texto = `${s.nombre}: stock actual ${s.stock}, stock mínimo ${s.stockMinimo}`;
+    mostrar('msg-ps', !s.alerta, s.alerta ? 'ALERTA, stock igual o menor al mínimo. ' + texto : texto);
+  }
+
+  // RF-019: ajuste con motivo y confirmación; el servidor deja el movimiento en el historial.
+  async function ajustarStock() {
+    const codigo = valorDe('ps-codigo');
+    const cantidadTexto = valorDe('ps-cantidad');
+    const motivo = valorDe('ps-motivo');
+    if (!codigo) { mostrar('msg-ps', false, 'Indique el código del producto'); return; }
+    const cantidad = Number(cantidadTexto);
+    if (cantidadTexto === '' || !Number.isInteger(cantidad) || cantidad === 0) {
+      mostrar('msg-ps', false, 'Indique un ajuste entero distinto de cero (por ejemplo 10 o -3)');
+      return;
+    }
+    if (!motivo) { mostrar('msg-ps', false, 'Indique el motivo del ajuste'); return; }
+
+    const actual = await llamar('GET', '/api/productos/' + encodeURIComponent(codigo) + '/stock');
+    if (!actual.ok) { mostrar('msg-ps', false, detalle(actual, 'No existe un producto con ese código')); return; }
+    const nuevoStock = actual.datos.stock + cantidad;
+    if (nuevoStock < 0) {
+      mostrar('msg-ps', false, `El ajuste dejaría el stock en negativo (stock actual: ${actual.datos.stock})`);
+      return;
+    }
+
+    const acepto = await confirmar('¿Ajustar el stock de ' + actual.datos.nombre + '?', [
+      'Código: ' + codigo,
+      'Stock actual: ' + actual.datos.stock,
+      'Ajuste: ' + (cantidad > 0 ? '+' : '') + cantidad,
+      'Stock nuevo: ' + nuevoStock,
+      'Motivo: ' + motivo
+    ], 'Ajustar', 'btn-warning');
+    if (!acepto) return;
+
+    const r = await llamar('POST', '/api/productos/' + encodeURIComponent(codigo) + '/ajustes', { cantidad, motivo });
+    if (r.ok) {
+      const s = r.datos;
+      mostrar('msg-ps', !s.alerta, `Stock actualizado: ${s.stock}` + (s.alerta ? ' (ALERTA: igual o menor al mínimo de ' + s.stockMinimo + ')' : ''));
+      document.getElementById('ps-cantidad').value = '';
+      document.getElementById('ps-motivo').value = '';
+      cargarProductos();
+    } else {
+      mostrar('msg-ps', false, detalle(r, 'Error al ajustar el stock'));
+    }
+  }
+
   async function logout() {
     await llamar('POST', '/api/auth/logout');
     token = null;
+    rolActual = null;
     mostrarVista(false);
     document.getElementById('msg-login').style.display = 'none';
     document.getElementById('l-cedula').focus();
@@ -728,6 +1186,14 @@
   activarAutocompletado('u-cedula', s => cargarParaActualizar(s.cedula));
   activarAutocompletado('i-cedula');
   activarAutocompletado('a-cedula');
+
+  document.getElementById('pl-nombre').addEventListener('keydown', e => {
+    if (e.key === 'Enter') cargarProductos();
+  });
+  activarAutocompletado('pc-codigo', () => consultarProducto(), FUENTE_PRODUCTOS);
+  activarAutocompletado('pu-codigo', s => cargarParaActualizarProducto(s.codigo), FUENTE_PRODUCTOS);
+  activarAutocompletado('pi-codigo', undefined, FUENTE_PRODUCTOS);
+  activarAutocompletado('ps-codigo', () => consultarStock(), FUENTE_PRODUCTOS);
 </script>
 </body>
 </html>
