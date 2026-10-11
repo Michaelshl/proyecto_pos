@@ -160,3 +160,16 @@ Para cambiar el esquema:
 Las pruebas automáticas usan H2 y arman el esquema desde las entidades, sin Flyway.
 
 Si la base `pos_db` se creó antes de Flyway (con `ddl-auto=update`), hay que recrearla una sola vez: `DROP DATABASE pos_db; CREATE DATABASE pos_db;`.
+
+## Deuda técnica
+
+Mejoras de seguridad y calidad conocidas que se dejaron para más adelante (el proyecto no es comercial):
+
+- **Usuario de MySQL con permisos mínimos.** La aplicación se conecta con `root` por defecto (`DB_USER`). Lo recomendable es crear un usuario `pos_app` con permisos solo sobre `pos_db` (`SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, REFERENCES`; los de estructura los necesita Flyway). Opcional en desarrollo local, obligatorio si algún día se despliega en un servidor.
+- Límite de intentos (rate limiting) en el login.
+- CORS sin configurar y Swagger accesible sin autenticación.
+- `spring.jpa.show-sql` activo y aviso de `open-in-view` al arrancar.
+- `@Data` de Lombok en la entidad `Usuario`.
+- Los permisos de `rol_permisos` todavía no gobiernan el acceso: las rutas se protegen por rol en `SecurityConfig`.
+- No existe una función para reactivar un usuario inactivo (no está en los requisitos).
+- Historial de Git: un commit de mayo de 2026 incluyó una contraseña de MySQL y un `JWT_SECRET` en `application.properties`. Ya se movieron a variables de entorno y se rotaron las claves, por lo que las del historial no sirven; el historial no se reescribió.
