@@ -93,6 +93,10 @@ Authorization: Bearer <token>
 | `PATCH /api/productos/{codigo}/inactivar` | RF-017 | ADMIN |
 | `GET /api/productos/{codigo}/stock` | RF-018 | ADMIN |
 | `POST /api/productos/{codigo}/ajustes` | RF-019 | ADMIN |
+| `POST /api/clientes` | RF-020 | ADMIN y CAJERO |
+| `PUT /api/clientes/{numeroDocumento}` | RF-021 | ADMIN y CAJERO |
+| `GET /api/clientes/{numeroDocumento}` | Ficha del cliente | ADMIN y CAJERO |
+| `GET /api/clientes/sugerencias?q=` | Apoyo de RF-021 (autocompletado) | ADMIN y CAJERO |
 
 Todos los errores responden con el mismo formato:
 
@@ -111,6 +115,7 @@ src/main/java/com/pos/
   rol/          Roles y sus permisos
   categoria/    Categorías
   producto/     Productos, inventario y ajustes de stock
+  cliente/      Clientes
   security/     JWT, filtro, reglas por rol y tokens revocados
   exception/    Manejo global de errores
   config/       Carga inicial de roles y del primer administrador
@@ -119,7 +124,7 @@ postman/        Colección de Postman
 
 ## Arquitectura
 
-Monolito modular con **paquetes por funcionalidad**: cada módulo (`usuario`, `auth`, `rol`, `categoria`, `producto`) agrupa su entidad, repositorio, servicio, controlador y `dto/`, y dentro sigue el orden controlador → servicio → repositorio. Lo transversal (`security`, `config`, `exception`) va aparte.
+Monolito modular con **paquetes por funcionalidad**: cada módulo (`usuario`, `auth`, `rol`, `categoria`, `producto`, `cliente`) agrupa su entidad, repositorio, servicio, controlador y `dto/`, y dentro sigue el orden controlador → servicio → repositorio. Lo transversal (`security`, `config`, `exception`) va aparte.
 
 Regla de dependencias, sin ciclos (la flecha significa "usa a"):
 
@@ -132,7 +137,7 @@ producto ──► categoria
 
 Un módulo nuevo solo debe depender de otros módulos "hacia abajo", como `producto ──► categoria`. Nada puede depender de `auth`.
 
-La interfaz (`index.html`) también se divide por módulos: una pestaña por cada uno (Usuarios y Productos con subpestañas, Roles, Categorías). Las de administrador se ocultan al cajero; en Productos el cajero solo ve Listado y Consultar.
+La interfaz (`index.html`) también se divide por módulos: una pestaña por cada uno (Usuarios, Productos y Clientes con subpestañas, Roles, Categorías). Las de administrador se ocultan al cajero; en Productos el cajero solo ve Listado y Consultar, y Clientes la usan los dos roles.
 
 ## Llaves primarias
 
@@ -146,6 +151,7 @@ Ninguna tabla usa llaves autogeneradas; cada una usa un dato propio de la entida
 | `tokens_revocados` | `jti` |
 | `productos` | `codigo` |
 | `ajustes_stock` | (`producto_codigo`, `consecutivo`): llave compuesta |
+| `clientes` | `numero_documento` (el `tipo_documento` es una columna normal) |
 
 `usuarios.rol_nombre` y `rol_permisos.rol_nombre` son llaves foráneas hacia `roles.nombre`.
 

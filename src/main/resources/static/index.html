@@ -110,6 +110,7 @@
     <button class="tab solo-admin" id="t-roles" onclick="abrirPestana('roles')">Roles</button>
     <button class="tab" id="t-categorias" onclick="abrirPestana('categorias')">Categorías</button>
     <button class="tab" id="t-productos" onclick="abrirPestana('productos')">Productos</button>
+    <button class="tab" id="t-clientes" onclick="abrirPestana('clientes')">Clientes</button>
   </nav>
 
   <!-- PESTAÑA USUARIOS (RF-004 a RF-007 y RF-009) -->
@@ -341,6 +342,73 @@
     </div>
   </section>
 
+  <!-- PESTAÑA CLIENTES (RF-020 y RF-021): los usan el cajero y el administrador -->
+  <section id="p-clientes" class="panel">
+    <nav class="subtabs">
+      <button class="subtab" id="st-cli-consultar" onclick="abrirSub('cli-consultar','clientes')">Consultar</button>
+      <button class="subtab" id="st-cli-crear" onclick="abrirSub('cli-crear','clientes')">Crear</button>
+      <button class="subtab" id="st-cli-actualizar" onclick="abrirSub('cli-actualizar','clientes')">Actualizar</button>
+    </nav>
+
+  <!-- CONSULTAR CLIENTE -->
+    <div class="card subpanel" id="s-cli-consultar">
+      <h2>Consultar Cliente</h2>
+      <div class="form-row">
+        <div class="campo-auto"><input id="cc-doc" placeholder="Documento, nombre o apellido" autocomplete="off" /><div class="lista-auto" id="lista-cc-doc"></div></div>
+      </div>
+      <button class="btn-primary" onclick="consultarCliente()">Consultar</button>
+      <div id="msg-cc" class="msg"></div>
+      <div id="ficha-cliente"></div>
+    </div>
+
+  <!-- CREAR CLIENTE (RF-020) -->
+    <div class="card subpanel" id="s-cli-crear">
+      <h2>Crear Cliente</h2>
+      <div class="form-row">
+        <select id="cn-tipo" style="flex:0 0 120px;min-width:100px">
+          <option value="CC">CC</option><option value="CE">CE</option><option value="TI">TI</option>
+          <option value="NIT">NIT</option><option value="PP">PP</option>
+        </select>
+        <input id="cn-doc" placeholder="Número de documento" maxlength="20" />
+      </div>
+      <div class="form-row">
+        <input id="cn-nombre" placeholder="Nombre" maxlength="100" />
+        <input id="cn-apellido" placeholder="Apellido" maxlength="100" />
+      </div>
+      <div class="form-row">
+        <input id="cn-email" placeholder="Correo electrónico (opcional)" type="email" maxlength="150" />
+        <input id="cn-tel" placeholder="Teléfono (opcional)" maxlength="20" />
+        <input id="cn-dir" placeholder="Dirección (opcional)" maxlength="255" />
+      </div>
+      <button class="btn-primary" onclick="crearCliente()">Crear Cliente</button>
+      <div id="msg-cn" class="msg"></div>
+    </div>
+
+  <!-- ACTUALIZAR CLIENTE (RF-021) -->
+    <div class="card subpanel" id="s-cli-actualizar">
+      <h2>Actualizar Cliente</h2>
+      <p class="nota">El número de documento no se edita. Elíjalo de la lista para cargar sus datos.</p>
+      <div class="form-row">
+        <div class="campo-auto"><input id="cu-doc" placeholder="Documento, nombre o apellido" autocomplete="off" /><div class="lista-auto" id="lista-cu-doc"></div></div>
+        <select id="cu-tipo" style="flex:0 0 120px;min-width:100px">
+          <option value="CC">CC</option><option value="CE">CE</option><option value="TI">TI</option>
+          <option value="NIT">NIT</option><option value="PP">PP</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <input id="cu-nombre" placeholder="Nombre" maxlength="100" />
+        <input id="cu-apellido" placeholder="Apellido" maxlength="100" />
+      </div>
+      <div class="form-row">
+        <input id="cu-email" placeholder="Correo electrónico (opcional)" type="email" maxlength="150" />
+        <input id="cu-tel" placeholder="Teléfono (opcional)" maxlength="20" />
+        <input id="cu-dir" placeholder="Dirección (opcional)" maxlength="255" />
+      </div>
+      <button class="btn-warning" onclick="actualizarCliente()">Actualizar</button>
+      <div id="msg-cu" class="msg"></div>
+    </div>
+  </section>
+
 </div>
 
 <div id="modal-fondo" class="modal-fondo">
@@ -393,6 +461,7 @@
       }
       cargarCategorias();
       abrirSub('prod-listado', 'productos');
+      abrirSub('cli-consultar', 'clientes');
       cargarProductos();
     } catch (e) {
       mostrar('msg-login', false, 'No se pudo conectar con el servidor');
@@ -582,6 +651,12 @@
     url: '/api/productos/sugerencias?q=',
     texto: s => s.codigo + ' · ' + s.nombre,
     valor: s => s.codigo
+  };
+
+  const FUENTE_CLIENTES = {
+    url: '/api/clientes/sugerencias?q=',
+    texto: s => s.numeroDocumento + ' · ' + s.nombre + ' ' + s.apellido,
+    valor: s => s.numeroDocumento
   };
 
   function activarAutocompletado(idInput, alElegir, fuente = FUENTE_USUARIOS) {
@@ -1168,6 +1243,111 @@
     }
   }
 
+  // ---------- Clientes (RF-020 y RF-021) ----------
+  // Trae la ficha de un cliente por su número de documento (null si no existe).
+  async function obtenerCliente(documento) {
+    const r = await llamar('GET', '/api/clientes/' + encodeURIComponent(documento));
+    return r.ok ? r.datos : null;
+  }
+
+  function nombreCliente(c) {
+    return (c.nombre + ' ' + c.apellido).trim();
+  }
+
+  function fichaClienteHtml(c) {
+    return `<table class="ficha" style="margin-top:16px">
+      <tr><th>Documento</th><td>${esc(c.tipoDocumento)} ${esc(c.numeroDocumento)}</td></tr>
+      <tr><th>Nombre</th><td>${esc(nombreCliente(c))}</td></tr>
+      <tr><th>Correo electrónico</th><td>${esc(c.email) || '(sin correo)'}</td></tr>
+      <tr><th>Teléfono</th><td>${esc(c.telefono) || '(sin teléfono)'}</td></tr>
+      <tr><th>Dirección</th><td>${esc(c.direccion) || '(sin dirección)'}</td></tr>
+    </table>`;
+  }
+
+  async function consultarCliente() {
+    const documento = valorDe('cc-doc');
+    const ficha = document.getElementById('ficha-cliente');
+    ficha.innerHTML = '';
+    if (!documento) { mostrar('msg-cc', false, 'Indique el documento del cliente'); return; }
+    const r = await llamar('GET', '/api/clientes/' + encodeURIComponent(documento));
+    if (r.ok) {
+      ocultarMsg('msg-cc');
+      ficha.innerHTML = fichaClienteHtml(r.datos);
+    } else if (r.status === 404) {
+      mostrar('msg-cc', false, 'No existe un cliente con ese documento. Escriba parte del nombre para buscarlo en la lista.');
+    } else {
+      mostrar('msg-cc', false, detalle(r, 'Error al consultar'));
+    }
+  }
+
+  // RF-020
+  async function crearCliente() {
+    const r = await llamar('POST', '/api/clientes', {
+      tipoDocumento: valorDe('cn-tipo'),
+      numeroDocumento: valorDe('cn-doc'),
+      nombre: valorDe('cn-nombre'),
+      apellido: valorDe('cn-apellido'),
+      email: valorDe('cn-email'),
+      telefono: valorDe('cn-tel'),
+      direccion: valorDe('cn-dir')
+    });
+    if (r.ok) {
+      mostrar('msg-cn', true, `Cliente ${nombreCliente(r.datos)} creado (${r.datos.tipoDocumento} ${r.datos.numeroDocumento})`);
+      ['cn-doc', 'cn-nombre', 'cn-apellido', 'cn-email', 'cn-tel', 'cn-dir'].forEach(id => document.getElementById(id).value = '');
+    } else {
+      mostrar('msg-cn', false, detalle(r, 'Error al crear cliente'));
+    }
+  }
+
+  // Al elegir un cliente en Actualizar se cargan sus datos actuales en el formulario.
+  async function cargarParaActualizarCliente(documento) {
+    const c = await obtenerCliente(documento);
+    if (!c) { mostrar('msg-cu', false, 'No se pudo cargar el cliente'); return; }
+    document.getElementById('cu-tipo').value = c.tipoDocumento;
+    document.getElementById('cu-nombre').value = c.nombre || '';
+    document.getElementById('cu-apellido').value = c.apellido || '';
+    document.getElementById('cu-email').value = c.email || '';
+    document.getElementById('cu-tel').value = c.telefono || '';
+    document.getElementById('cu-dir').value = c.direccion || '';
+    ocultarMsg('msg-cu');
+  }
+
+  // RF-021: muestra solo lo que cambia y pide confirmación.
+  async function actualizarCliente() {
+    const documento = valorDe('cu-doc');
+    if (!documento) { mostrar('msg-cu', false, 'Indique el documento del cliente'); return; }
+    const actual = await obtenerCliente(documento);
+    if (!actual) { mostrar('msg-cu', false, 'No existe un cliente con ese documento'); return; }
+
+    const nuevo = {
+      tipoDocumento: valorDe('cu-tipo'),
+      nombre: valorDe('cu-nombre'),
+      apellido: valorDe('cu-apellido'),
+      email: valorDe('cu-email'),
+      telefono: valorDe('cu-tel'),
+      direccion: valorDe('cu-dir')
+    };
+    const cambios = [];
+    [['Tipo de documento', 'tipoDocumento'], ['Nombre', 'nombre'], ['Apellido', 'apellido'],
+     ['Correo', 'email'], ['Teléfono', 'telefono'], ['Dirección', 'direccion']].forEach(([etiqueta, campo]) => {
+      if ((actual[campo] || '') !== nuevo[campo]) {
+        cambios.push(etiqueta + ': ' + (actual[campo] || '(vacío)') + ' → ' + (nuevo[campo] || '(vacío)'));
+      }
+    });
+    if (cambios.length === 0) { mostrar('msg-cu', false, 'No hay cambios para guardar'); return; }
+
+    const acepto = await confirmar('¿Actualizar a ' + nombreCliente(actual) + '?',
+      ['Documento: ' + documento].concat(cambios), 'Actualizar', 'btn-warning');
+    if (!acepto) return;
+
+    const r = await llamar('PUT', '/api/clientes/' + encodeURIComponent(documento), nuevo);
+    if (r.ok) {
+      mostrar('msg-cu', true, 'Cliente actualizado');
+    } else {
+      mostrar('msg-cu', false, detalle(r, 'Error al actualizar'));
+    }
+  }
+
   async function logout() {
     await llamar('POST', '/api/auth/logout');
     token = null;
@@ -1194,6 +1374,8 @@
   activarAutocompletado('pu-codigo', s => cargarParaActualizarProducto(s.codigo), FUENTE_PRODUCTOS);
   activarAutocompletado('pi-codigo', undefined, FUENTE_PRODUCTOS);
   activarAutocompletado('ps-codigo', () => consultarStock(), FUENTE_PRODUCTOS);
+  activarAutocompletado('cc-doc', () => consultarCliente(), FUENTE_CLIENTES);
+  activarAutocompletado('cu-doc', s => cargarParaActualizarCliente(s.numeroDocumento), FUENTE_CLIENTES);
 </script>
 </body>
 </html>
