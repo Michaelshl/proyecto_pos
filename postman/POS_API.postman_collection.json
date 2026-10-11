@@ -192,6 +192,178 @@
       ]
     },
     {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Crear producto P001 (RF-013)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 o 400 si ya existe', () => pm.expect([201, 400]).to.include(pm.response.code));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos",
+            "body": { "mode": "raw", "raw": "{\n  \"codigo\": \"P001\",\n  \"nombre\": \"Coca-Cola 1.5L\",\n  \"descripcion\": \"Gaseosa\",\n  \"precioVenta\": 5500.50,\n  \"stockInicial\": 10,\n  \"stockMinimo\": 5,\n  \"categoria\": \"Bebidas\"\n}" }
+          }
+        },
+        {
+          "name": "Crear producto con datos inválidos -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 con formato de error', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().status).to.eql(400); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos",
+            "body": { "mode": "raw", "raw": "{\n  \"codigo\": \"\",\n  \"precioVenta\": -1\n}" }
+          }
+        },
+        {
+          "name": "Crear producto con categoría inexistente -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos",
+            "body": { "mode": "raw", "raw": "{\n  \"codigo\": \"P900\",\n  \"nombre\": \"x\",\n  \"precioVenta\": 1,\n  \"stockInicial\": 1,\n  \"stockMinimo\": 1,\n  \"categoria\": \"NoExiste\"\n}" }
+          }
+        },
+        {
+          "name": "Actualizar producto (RF-014)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con los datos nuevos', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().codigo).to.eql('P001'); });"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos/P001",
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Coca-Cola 1.5L Zero\",\n  \"descripcion\": \"Sin azucar\",\n  \"precioVenta\": 5600,\n  \"stockMinimo\": 5,\n  \"categoria\": \"Bebidas\"\n}" }
+          }
+        },
+        {
+          "name": "Actualizar producto inexistente -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos/NO-EXISTE",
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"x\",\n  \"precioVenta\": 1,\n  \"stockMinimo\": 1,\n  \"categoria\": \"Bebidas\"\n}" }
+          }
+        },
+        {
+          "name": "Consultar producto por código (RF-015)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con la ficha', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.codigo).to.eql('P001'); pm.expect(j).to.have.property('stock'); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/productos/P001" }
+        },
+        {
+          "name": "Consultar producto inexistente -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/productos/NO-EXISTE" }
+        },
+        {
+          "name": "Listar productos por categoría y estado (RF-016)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con total', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.total).to.eql(j.productos.length); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/productos?categoria=Bebidas&activo=true" }
+        },
+        {
+          "name": "Sugerencias de productos (autocompletado)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con lista de máximo 8', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j).to.be.an('array'); pm.expect(j.length).to.be.at.most(8); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/productos/sugerencias?q=P0" }
+        },
+        {
+          "name": "Consultar stock (RF-018)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con stock, mínimo y alerta', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j).to.include.keys('stock', 'stockMinimo', 'alerta'); pm.expect(j.alerta).to.eql(j.stock <= j.stockMinimo); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/productos/P001/stock" }
+        },
+        {
+          "name": "Ajustar stock +10 (RF-019)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con el stock nuevo', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().stock).to.be.a('number'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos/P001/ajustes",
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 10,\n  \"motivo\": \"Compra al proveedor\"\n}" }
+          }
+        },
+        {
+          "name": "Ajustar stock que deja negativo -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos/P001/ajustes",
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": -1000000,\n  \"motivo\": \"Prueba\"\n}" }
+          }
+        },
+        {
+          "name": "Ajustar stock sin motivo -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos/P001/ajustes",
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 5\n}" }
+          }
+        },
+        {
+          "name": "Crear producto P002 (para inactivar)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 o 400 si ya existe', () => pm.expect([201, 400]).to.include(pm.response.code));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos",
+            "body": { "mode": "raw", "raw": "{\n  \"codigo\": \"P002\",\n  \"nombre\": \"Jugo de naranja\",\n  \"precioVenta\": 3200,\n  \"stockInicial\": 4,\n  \"stockMinimo\": 2,\n  \"categoria\": \"Bebidas\"\n}" }
+          }
+        },
+        {
+          "name": "Inactivar producto sin motivo -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos/P002/inactivar",
+            "body": { "mode": "raw", "raw": "{\n  \"motivo\": \" \"\n}" }
+          }
+        },
+        {
+          "name": "Inactivar producto (RF-017)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 inactivo, o 400 si ya lo estaba', () => { pm.expect([200, 400]).to.include(pm.response.code); if (pm.response.code === 200) pm.expect(pm.response.json().activo).to.eql(false); });"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos/P002/inactivar",
+            "body": { "mode": "raw", "raw": "{\n  \"motivo\": \"Descontinuado\"\n}" }
+          }
+        }
+      ]
+    },
+    {
       "name": "Control por rol (Cajero)",
       "item": [
         {
@@ -241,6 +413,65 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/usuarios"
+          }
+        },
+        {
+          "name": "Cajero lista productos -> 200",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/productos"
+          }
+        },
+        {
+          "name": "Cajero consulta producto -> 200",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/productos/P001"
+          }
+        },
+        {
+          "name": "Cajero crea producto -> 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403 con formato de error', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().status).to.eql(403); });"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos",
+            "body": { "mode": "raw", "raw": "{\n  \"codigo\": \"P777\",\n  \"nombre\": \"x\",\n  \"precioVenta\": 1,\n  \"stockInicial\": 1,\n  \"stockMinimo\": 1,\n  \"categoria\": \"Bebidas\"\n}" }
+          }
+        },
+        {
+          "name": "Cajero consulta stock -> 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403', () => pm.response.to.have.status(403));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/productos/P001/stock"
+          }
+        },
+        {
+          "name": "Cajero ajusta stock -> 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403', () => pm.response.to.have.status(403));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos/P001/ajustes",
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 5,\n  \"motivo\": \"x\"\n}" }
           }
         }
       ]

@@ -40,6 +40,7 @@ erDiagram
         int stock
         int stock_minimo
         boolean activo
+        string motivo_inactivacion
         long version
         string categoria_nombre FK
     }
@@ -135,7 +136,7 @@ erDiagram
 - **`clientes`**: `numero_documento` es la llave; `tipo_documento` es una columna normal.
 - **Números de factura y de recibo**: los genera la aplicación (por ejemplo `F-000001`) a partir de la tabla `consecutivos`, leyendo y aumentando el último valor dentro de una transacción con bloqueo, para que dos cajeros simultáneos no obtengan el mismo número. La base no usa autoincremental.
 - **`ajustes_stock` y `detalle_venta`**: no tienen un dato propio que los identifique por sí solos, así que usan una llave compuesta con un consecutivo por producto (`consecutivo`) o por factura (`linea`).
-- **`productos.stock`** guarda el stock actual; `version` evita que dos ajustes o ventas simultáneas se pisen (`@Version`). `ajustes_stock` es el historial de cada ajuste con su motivo.
+- **`productos.stock`** guarda el stock actual; `version` evita que dos ajustes o ventas simultáneas se pisen (`@Version`). `ajustes_stock` es el historial de cada ajuste con su motivo. `productos.motivo_inactivacion` guarda el motivo que pide el RF-017 al inactivar (igual que en `usuarios`); se agregó al implementar el Sprint 2.
 - **`ventas` 1 a 0..1 `pagos`**: una venta se paga una sola vez (no hay pagos parciales en los requisitos).
 - **Factura y recibo** (RF-032, RF-035) no son tablas: son documentos generados a partir de `ventas` y `pagos`. Los reportes (RF-036 a RF-040) son consultas.
 

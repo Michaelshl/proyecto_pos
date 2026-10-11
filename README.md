@@ -85,6 +85,14 @@ Authorization: Bearer <token>
 | `POST /api/roles` | RF-008 | ADMIN |
 | `POST /api/categorias` | RF-010 | ADMIN |
 | `GET /api/categorias` | RF-012 | ADMIN y CAJERO |
+| `POST /api/productos` | RF-013 | ADMIN |
+| `PUT /api/productos/{codigo}` | RF-014 | ADMIN |
+| `GET /api/productos/{codigo}` | RF-015 | ADMIN y CAJERO |
+| `GET /api/productos?categoria=&activo=&nombre=` | RF-015, RF-016 (filtros opcionales) | ADMIN y CAJERO |
+| `GET /api/productos/sugerencias?q=` | Apoyo de RF-015 (autocompletado) | ADMIN y CAJERO |
+| `PATCH /api/productos/{codigo}/inactivar` | RF-017 | ADMIN |
+| `GET /api/productos/{codigo}/stock` | RF-018 | ADMIN |
+| `POST /api/productos/{codigo}/ajustes` | RF-019 | ADMIN |
 
 Todos los errores responden con el mismo formato:
 
@@ -92,7 +100,7 @@ Todos los errores responden con el mismo formato:
 { "timestamp": "...", "status": 400, "error": "Bad Request", "message": "...", "path": "/api/..." }
 ```
 
-Un token ausente, inválido, vencido o revocado responde 401; un rol sin permiso, 403.
+Un token ausente, inválido, vencido o revocado responde 401; un rol sin permiso, 403. Un ajuste de stock que choca con otra operación sobre el mismo producto responde 409 (bloqueo optimista con `@Version`): basta con repetirlo.
 
 ## Estructura
 
@@ -102,6 +110,7 @@ src/main/java/com/pos/
   auth/         Login y logout
   rol/          Roles y sus permisos
   categoria/    Categorías
+  producto/     Productos, inventario y ajustes de stock
   security/     JWT, filtro, reglas por rol y tokens revocados
   exception/    Manejo global de errores
   config/       Carga inicial de roles y del primer administrador
@@ -110,7 +119,7 @@ postman/        Colección de Postman
 
 ## Arquitectura
 
-Monolito modular con **paquetes por funcionalidad**: cada módulo (`usuario`, `auth`, `rol`, `categoria`) agrupa su entidad, repositorio, servicio, controlador y `dto/`, y dentro sigue el orden controlador → servicio → repositorio. Lo transversal (`security`, `config`, `exception`) va aparte.
+Monolito modular con **paquetes por funcionalidad**: cada módulo (`usuario`, `auth`, `rol`, `categoria`, `producto`) agrupa su entidad, repositorio, servicio, controlador y `dto/`, y dentro sigue el orden controlador → servicio → repositorio. Lo transversal (`security`, `config`, `exception`) va aparte.
 
 Regla de dependencias, sin ciclos (la flecha significa "usa a"):
 
@@ -118,11 +127,12 @@ Regla de dependencias, sin ciclos (la flecha significa "usa a"):
 auth ──► security ──► usuario ──► rol
   └──────────────────►┘
 config ──► usuario, rol          categoria (independiente)
+producto ──► categoria
 ```
 
-Un módulo nuevo (por ejemplo `producto`) solo debe depender de otros módulos "hacia abajo": `producto ──► categoria`. Nada puede depender de `auth`.
+Un módulo nuevo solo debe depender de otros módulos "hacia abajo", como `producto ──► categoria`. Nada puede depender de `auth`.
 
-La interfaz (`index.html`) también se divide por módulos: una pestaña por cada uno (Usuarios con subpestañas, Roles, Categorías) y las de administrador se ocultan al cajero.
+La interfaz (`index.html`) también se divide por módulos: una pestaña por cada uno (Usuarios y Productos con subpestañas, Roles, Categorías). Las de administrador se ocultan al cajero; en Productos el cajero solo ve Listado y Consultar.
 
 ## Llaves primarias
 
@@ -134,6 +144,8 @@ Ninguna tabla usa llaves autogeneradas; cada una usa un dato propio de la entida
 | `roles` | `nombre` (en mayúsculas, ej. `ADMIN`) |
 | `categorias` | `nombre` |
 | `tokens_revocados` | `jti` |
+| `productos` | `codigo` |
+| `ajustes_stock` | (`producto_codigo`, `consecutivo`): llave compuesta |
 
 `usuarios.rol_nombre` y `rol_permisos.rol_nombre` son llaves foráneas hacia `roles.nombre`.
 
@@ -147,13 +159,14 @@ El esquema lo manejan scripts SQL versionados con [Flyway](https://flywaydb.org)
 
 ```
 V1__esquema_inicial.sql      usuarios, roles, rol_permisos, categorias, tokens_revocados
-V2__...                      (siguientes sprints)
+V2__productos_y_clientes.sql productos, ajustes_stock, clientes
+V3__...                      (siguientes sprints)
 ```
 
 Al arrancar, Flyway compara los scripts con la tabla `flyway_schema_history` de la base y ejecuta solo los que faltan, así que una base nueva o una antigua quedan al día sin borrar datos. Hibernate solo valida (`ddl-auto=validate`): si una entidad no coincide con la base, la aplicación no arranca y el mensaje dice qué columna falta.
 
 Para cambiar el esquema:
-1. Crear un archivo nuevo con el siguiente número, por ejemplo `V2__productos_y_clientes.sql`. Guion bajo doble entre el número y la descripción.
+1. Crear un archivo nuevo con el siguiente número, por ejemplo `V3__ventas.sql`. Guion bajo doble entre el número y la descripción.
 2. **Nunca editar un script que ya se aplicó**: Flyway detecta el cambio y no deja arrancar. Una corrección va en un script nuevo.
 3. Actualizar la entidad JPA y el diagrama (`docs/modelo-de-datos.md`).
 
