@@ -156,3 +156,40 @@ Authorization: Bearer {{token}}
   "cantidad": -3,
   "motivo": "Producto vencido"
 }
+
+### Crear cliente (RF-020, ADMIN y CAJERO): tipoDocumento es CC, CE, TI, NIT o PP; email, telefono y direccion son opcionales
+POST http://localhost:8081/api/clientes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "tipoDocumento": "CC",
+  "numeroDocumento": "80010001",
+  "nombre": "Ana",
+  "apellido": "Lopez",
+  "email": "ana@correo.com",
+  "telefono": "3001234567",
+  "direccion": "Calle 1 # 2-3"
+}
+
+### Actualizar cliente (RF-021): el número de documento no se edita, viaja en la ruta
+PUT http://localhost:8081/api/clientes/80010001
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "tipoDocumento": "CC",
+  "nombre": "Ana María",
+  "apellido": "Lopez",
+  "email": "ana.maria@correo.com",
+  "telefono": "3109876543",
+  "direccion": "Carrera 5 # 6-7"
+}
+
+### Consultar cliente por número de documento
+GET http://localhost:8081/api/clientes/80010001
+Authorization: Bearer {{token}}
+
+### Sugerencias de clientes para el autocompletado
+GET http://localhost:8081/api/clientes/sugerencias?q=ana
+Authorization: Bearer {{token}}

@@ -74,6 +74,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/productos", "/api/productos/*")
                         .hasAnyRole("ADMIN", "CAJERO")
                 .requestMatchers("/api/productos/**").hasRole("ADMIN")
+                // Clientes: los registra y actualiza el cajero (RF-020, RF-021); el administrador también puede.
+                .requestMatchers("/api/clientes/**").hasAnyRole("ADMIN", "CAJERO")
                 .requestMatchers("/api/usuarios/**", "/api/roles/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )

@@ -43,9 +43,9 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         asegurarRol("ADMIN", "Administrador del sistema",
-                List.of("USUARIOS", "ROLES", "CATEGORIAS", "PRODUCTOS"));
+                List.of("USUARIOS", "ROLES", "CATEGORIAS", "PRODUCTOS", "CLIENTES"));
         asegurarRol("CAJERO", "Cajero de punto de venta",
-                List.of("CATEGORIAS_LEER", "PRODUCTOS_LEER"));
+                List.of("CATEGORIAS_LEER", "PRODUCTOS_LEER", "CLIENTES"));
         crearPrimerAdmin();
     }
 

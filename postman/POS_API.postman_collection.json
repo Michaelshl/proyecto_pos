@@ -364,6 +364,115 @@
       ]
     },
     {
+      "name": "Clientes",
+      "item": [
+        {
+          "name": "Crear cliente (RF-020)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 o 400 si ya existe', () => pm.expect([201, 400]).to.include(pm.response.code));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"numeroDocumento\": \"80010001\",\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Lopez\",\n  \"email\": \"ana@correo.com\",\n  \"telefono\": \"3001234567\",\n  \"direccion\": \"Calle 1 # 2-3\"\n}" }
+          }
+        },
+        {
+          "name": "Crear cliente repetido -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 por documento repetido', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().message).to.include('Ya existe'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"numeroDocumento\": \"80010001\",\n  \"nombre\": \"Otra\",\n  \"apellido\": \"Persona\"\n}" }
+          }
+        },
+        {
+          "name": "Crear cliente con tipo de documento inválido -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 con formato de error', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().status).to.eql(400); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"XX\",\n  \"numeroDocumento\": \"80010002\",\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Lopez\"\n}" }
+          }
+        },
+        {
+          "name": "Crear cliente con correo y teléfono inválidos -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"numeroDocumento\": \"80010003\",\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Lopez\",\n  \"email\": \"no-es-un-correo\",\n  \"telefono\": \"abc\"\n}" }
+          }
+        },
+        {
+          "name": "Actualizar cliente (RF-021)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con los datos nuevos y el mismo documento', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.numeroDocumento).to.eql('80010001'); pm.expect(j.nombre).to.eql('Ana María'); });"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes/80010001",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"nombre\": \"Ana María\",\n  \"apellido\": \"Lopez\",\n  \"email\": \"ana.maria@correo.com\",\n  \"telefono\": \"3109876543\",\n  \"direccion\": \"Carrera 5 # 6-7\"\n}" }
+          }
+        },
+        {
+          "name": "Actualizar cliente inexistente -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes/NO-EXISTE",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"nombre\": \"x\",\n  \"apellido\": \"y\"\n}" }
+          }
+        },
+        {
+          "name": "Consultar cliente por documento",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con la ficha', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().numeroDocumento).to.eql('80010001'); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/clientes/80010001" }
+        },
+        {
+          "name": "Consultar cliente inexistente -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/clientes/NO-EXISTE" }
+        },
+        {
+          "name": "Sugerencias de clientes (autocompletado)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con lista de máximo 8', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j).to.be.an('array'); pm.expect(j.length).to.be.at.most(8); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/clientes/sugerencias?q=800" }
+        },
+        {
+          "name": "Sin token -> 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes/80010001"
+          }
+        }
+      ]
+    },
+    {
       "name": "Control por rol (Cajero)",
       "item": [
         {
@@ -459,6 +568,32 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
             "method": "GET",
             "url": "{{baseUrl}}/api/productos/P001/stock"
+          }
+        },
+        {
+          "name": "Cajero crea cliente (RF-020) -> 201",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 o 400 si ya existe', () => pm.expect([201, 400]).to.include(pm.response.code));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CE\",\n  \"numeroDocumento\": \"80010010\",\n  \"nombre\": \"Luis\",\n  \"apellido\": \"Perez\"\n}" }
+          }
+        },
+        {
+          "name": "Cajero actualiza cliente (RF-021) -> 200",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes/80010001",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"nombre\": \"Ana María\",\n  \"apellido\": \"Lopez\",\n  \"email\": \"ana.maria@correo.com\",\n  \"telefono\": \"3109876543\",\n  \"direccion\": \"Carrera 5 # 6-7\"\n}" }
           }
         },
         {
