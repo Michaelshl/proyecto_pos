@@ -68,6 +68,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categorias").hasAnyRole("ADMIN", "CAJERO")
                 .requestMatchers("/api/categorias/**").hasRole("ADMIN")
+                // Productos: el cajero solo consulta y lista (RF-015, RF-016); el resto es del administrador.
+                // El primer GET es más específico y va antes: el stock (RF-018) es solo del administrador.
+                .requestMatchers(HttpMethod.GET, "/api/productos/*/stock").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/productos", "/api/productos/*")
+                        .hasAnyRole("ADMIN", "CAJERO")
+                .requestMatchers("/api/productos/**").hasRole("ADMIN")
                 .requestMatchers("/api/usuarios/**", "/api/roles/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )

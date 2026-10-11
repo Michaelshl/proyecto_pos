@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -50,6 +51,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             mensaje = status instanceof HttpStatus hs ? hs.getReasonPhrase() : "Error";
         }
         return construir(status, mensaje, request);
+    }
+
+    // Dos ajustes de stock (o un ajuste y una venta) sobre el mismo producto a la vez: gana el primero
+    // y el segundo recibe 409 para que reintente con el stock ya actualizado.
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Object> manejarConflictoDeVersion(ObjectOptimisticLockingFailureException ex,
+                                                            HttpServletRequest request) {
+        return construir(HttpStatus.CONFLICT,
+                "El registro fue modificado por otra operación; vuelve a intentarlo", request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)
