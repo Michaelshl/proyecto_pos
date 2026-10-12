@@ -189,6 +189,7 @@ Mejoras de seguridad y calidad conocidas que se dejaron para más adelante (el p
 - Límite de intentos (rate limiting) en el login.
 - CORS sin configurar y Swagger accesible sin autenticación.
 - `spring.jpa.show-sql` activo y aviso de `open-in-view` al arrancar.
+- **Logs:** no hay configuración propia de logging. Salen solo por consola (Logback con el nivel INFO por defecto), sin archivo ni rotación. El código registra únicamente 3 eventos: el administrador inicial creado, el aviso si faltan sus variables y los errores 500 con su traza. No se registran los intentos de login fallidos, los 401/403, ni las acciones sensibles (inactivar, ajustar stock, asignar rol); el único historial de negocio son los motivos guardados en la base (`ajustes_stock`, `motivo_inactivacion`). `show-sql` imprime cada consulta por consola.
 - `@Data` de Lombok en la entidad `Usuario`.
 - Los permisos de `rol_permisos` todavía no gobiernan el acceso: las rutas se protegen por rol en `SecurityConfig`.
 - No existe una función para reactivar un usuario inactivo (no está en los requisitos).
