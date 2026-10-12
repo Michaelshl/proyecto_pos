@@ -19,11 +19,13 @@ public class ClienteRequest {
             message = "El número de documento debe tener entre 4 y 20 caracteres (letras, números o guion)")
     private String numeroDocumento;
 
-    @NotBlank(message = "El nombre es obligatorio")
-    @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
+    // Para un NIT es la razón social de la empresa.
+    @NotBlank(message = "El nombre (o la razón social, si es NIT) es obligatorio")
+    @Size(max = 150, message = "El nombre no puede superar 150 caracteres")
     private String nombre;
 
-    @NotBlank(message = "El apellido es obligatorio")
+    // Obligatorio para las personas y no aplica a un NIT: esa regla depende del tipo de documento
+    // y la valida el servicio (aquí solo se limita el largo).
     @Size(max = 100, message = "El apellido no puede superar 100 caracteres")
     private String apellido;
 

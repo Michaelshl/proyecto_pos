@@ -18,10 +18,12 @@ public class Cliente {
     @Column(name = "tipo_documento", length = 20, nullable = false)
     private String tipoDocumento;
 
-    @Column(length = 100, nullable = false)
+    // Nombre de la persona o, si el tipo de documento es NIT, la razón social de la empresa.
+    @Column(length = 150, nullable = false)
     private String nombre;
 
-    @Column(length = 100, nullable = false)
+    // Solo las personas tienen apellido: para un NIT es siempre NULL.
+    @Column(length = 100)
     private String apellido;
 
     @Column(length = 150)

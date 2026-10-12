@@ -46,7 +46,12 @@
     .badge-active   { background: #d4edda; color: #155724; }
     .badge-inactive { background: #f8d7da; color: #721c24; }
     .badge-warn     { background: #fff3cd; color: #856404; margin-left: 6px; }
-    .ficha th { width: 190px; }
+    /* La ficha (producto o cliente) es una tabla de dos columnas: etiqueta y valor. Se pinta clara; el fondo
+       oscuro de "th" es para los encabezados de las tablas de listado. */
+    .ficha { border: 1px solid #e4e6eb; border-radius: 6px; overflow: hidden; }
+    .ficha th { width: 190px; background: #f0f2f5; color: #333; font-weight: 600; border-bottom: 1px solid #e4e6eb; }
+    .ficha td { border-bottom: 1px solid #e4e6eb; }
+    .ficha tr:last-child th, .ficha tr:last-child td { border-bottom: none; }
     .nota { font-size: 13px; color: #666; margin-bottom: 12px; }
 
     .login-box { max-width: 380px; margin: 80px auto; }
@@ -277,7 +282,7 @@
     <div class="card subpanel" id="s-prod-crear">
       <h2>Crear Producto</h2>
       <div class="form-row">
-        <input id="pn-codigo" placeholder="Código" maxlength="30" />
+        <input id="pn-codigo" placeholder="Código SKU (solo números)" inputmode="numeric" maxlength="14" autocomplete="off" />
         <input id="pn-nombre" placeholder="Nombre" maxlength="150" />
         <input id="pn-desc" placeholder="Descripción" maxlength="255" />
       </div>
@@ -365,14 +370,14 @@
     <div class="card subpanel" id="s-cli-crear">
       <h2>Crear Cliente</h2>
       <div class="form-row">
-        <select id="cn-tipo" style="flex:0 0 120px;min-width:100px">
+        <select id="cn-tipo" style="flex:0 0 120px;min-width:100px" onchange="ajustarTipoCliente('cn')">
           <option value="CC">CC</option><option value="CE">CE</option><option value="TI">TI</option>
           <option value="NIT">NIT</option><option value="PP">PP</option>
         </select>
         <input id="cn-doc" placeholder="Número de documento" maxlength="20" />
       </div>
       <div class="form-row">
-        <input id="cn-nombre" placeholder="Nombre" maxlength="100" />
+        <input id="cn-nombre" placeholder="Nombre" maxlength="150" />
         <input id="cn-apellido" placeholder="Apellido" maxlength="100" />
       </div>
       <div class="form-row">
@@ -390,13 +395,13 @@
       <p class="nota">El número de documento no se edita. Elíjalo de la lista para cargar sus datos.</p>
       <div class="form-row">
         <div class="campo-auto"><input id="cu-doc" placeholder="Documento, nombre o apellido" autocomplete="off" /><div class="lista-auto" id="lista-cu-doc"></div></div>
-        <select id="cu-tipo" style="flex:0 0 120px;min-width:100px">
+        <select id="cu-tipo" style="flex:0 0 120px;min-width:100px" onchange="ajustarTipoCliente('cu')">
           <option value="CC">CC</option><option value="CE">CE</option><option value="TI">TI</option>
           <option value="NIT">NIT</option><option value="PP">PP</option>
         </select>
       </div>
       <div class="form-row">
-        <input id="cu-nombre" placeholder="Nombre" maxlength="100" />
+        <input id="cu-nombre" placeholder="Nombre" maxlength="150" />
         <input id="cu-apellido" placeholder="Apellido" maxlength="100" />
       </div>
       <div class="form-row">
@@ -657,7 +662,7 @@
 
   const FUENTE_CLIENTES = {
     url: '/api/clientes/sugerencias?q=',
-    texto: s => s.numeroDocumento + ' · ' + s.nombre + ' ' + s.apellido,
+    texto: s => s.numeroDocumento + ' · ' + [s.nombre, s.apellido].filter(Boolean).join(' '),
     valor: s => s.numeroDocumento
   };
 
@@ -1252,14 +1257,25 @@
     return r.ok ? r.datos : null;
   }
 
+  // Una persona tiene nombre y apellido; una empresa (NIT) solo tiene razón social, que se guarda en "nombre".
   function nombreCliente(c) {
-    return (c.nombre + ' ' + c.apellido).trim();
+    return [c.nombre, c.apellido].filter(Boolean).join(' ');
+  }
+
+  // Cuando el tipo de documento es NIT, el campo "Nombre" pasa a ser "Razón social" y se oculta el apellido.
+  // prefijo: 'cn' (Crear) o 'cu' (Actualizar).
+  function ajustarTipoCliente(prefijo) {
+    const esNit = document.getElementById(prefijo + '-tipo').value === 'NIT';
+    document.getElementById(prefijo + '-nombre').placeholder = esNit ? 'Razón social' : 'Nombre';
+    const apellido = document.getElementById(prefijo + '-apellido');
+    apellido.style.display = esNit ? 'none' : '';
+    if (esNit) apellido.value = '';
   }
 
   function fichaClienteHtml(c) {
     return `<table class="ficha" style="margin-top:16px">
       <tr><th>Documento</th><td>${esc(c.tipoDocumento)} ${esc(c.numeroDocumento)}</td></tr>
-      <tr><th>Nombre</th><td>${esc(nombreCliente(c))}</td></tr>
+      <tr><th>${c.tipoDocumento === 'NIT' ? 'Razón social' : 'Nombre'}</th><td>${esc(nombreCliente(c))}</td></tr>
       <tr><th>Correo electrónico</th><td>${esc(c.email) || '(sin correo)'}</td></tr>
       <tr><th>Teléfono</th><td>${esc(c.telefono) || '(sin teléfono)'}</td></tr>
       <tr><th>Dirección</th><td>${esc(c.direccion) || '(sin dirección)'}</td></tr>
@@ -1306,6 +1322,7 @@
     const c = await obtenerCliente(documento);
     if (!c) { mostrar('msg-cu', false, 'No se pudo cargar el cliente'); return; }
     document.getElementById('cu-tipo').value = c.tipoDocumento;
+    ajustarTipoCliente('cu');
     document.getElementById('cu-nombre').value = c.nombre || '';
     document.getElementById('cu-apellido').value = c.apellido || '';
     document.getElementById('cu-email').value = c.email || '';
@@ -1330,8 +1347,8 @@
       direccion: valorDe('cu-dir')
     };
     const cambios = [];
-    [['Tipo de documento', 'tipoDocumento'], ['Nombre', 'nombre'], ['Apellido', 'apellido'],
-     ['Correo', 'email'], ['Teléfono', 'telefono'], ['Dirección', 'direccion']].forEach(([etiqueta, campo]) => {
+    [['Tipo de documento', 'tipoDocumento'], [nuevo.tipoDocumento === 'NIT' ? 'Razón social' : 'Nombre', 'nombre'],
+     ['Apellido', 'apellido'], ['Correo', 'email'], ['Teléfono', 'telefono'], ['Dirección', 'direccion']].forEach(([etiqueta, campo]) => {
       if ((actual[campo] || '') !== nuevo[campo]) {
         cambios.push(etiqueta + ': ' + (actual[campo] || '(vacío)') + ' → ' + (nuevo[campo] || '(vacío)'));
       }
@@ -1363,11 +1380,16 @@
     if (e.key === 'Enter') login();
   });
 
-  // La cédula solo tiene dígitos: cualquier otro carácter (escrito o pegado) se descarta al instante.
-  document.getElementById('l-cedula').addEventListener('input', e => {
-    const soloNumeros = e.target.value.replace(/\D/g, '');
-    if (soloNumeros !== e.target.value) e.target.value = soloNumeros;
-  });
+  // Los campos numéricos (cédula del login y SKU de un producto nuevo) solo aceptan dígitos:
+  // cualquier otro carácter, escrito o pegado, se descarta al instante.
+  function soloDigitos(idInput) {
+    document.getElementById(idInput).addEventListener('input', e => {
+      const soloNumeros = e.target.value.replace(/\D/g, '');
+      if (soloNumeros !== e.target.value) e.target.value = soloNumeros;
+    });
+  }
+  soloDigitos('l-cedula');
+  soloDigitos('pn-codigo');
 
 
   activarAutocompletado('b-cedula', () => buscarUsuario());

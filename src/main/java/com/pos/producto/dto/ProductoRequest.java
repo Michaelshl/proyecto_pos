@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -12,8 +13,10 @@ import java.math.BigDecimal;
 @Data
 public class ProductoRequest {
 
+    // El código es un SKU numérico (como un código de barras): solo dígitos, entre 4 y 14 (cubre los
+    // códigos internos y los EAN-8, EAN-13 y GTIN-14). Es String para no perder ceros a la izquierda.
     @NotBlank(message = "El código es obligatorio")
-    @Size(max = 30, message = "El código no puede superar 30 caracteres")
+    @Pattern(regexp = "\\d{4,14}", message = "El código (SKU) debe tener entre 4 y 14 dígitos, solo números")
     private String codigo;
 
     @NotBlank(message = "El nombre es obligatorio")

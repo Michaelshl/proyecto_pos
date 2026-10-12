@@ -9,7 +9,9 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // Quién puede qué en /api/productos: el cajero solo consulta y lista; el administrador hace todo.
@@ -71,6 +73,36 @@ class ProductoSeguridadTest {
     void crearConJsonInvalidoDa400() throws Exception {
         mockMvc.perform(post("/api/productos").contentType(MediaType.APPLICATION_JSON).content(JSON_VACIO))
                 .andExpect(status().isBadRequest());
+    }
+
+    private String producto(String codigo) {
+        return "{\"codigo\":\"" + codigo + "\",\"nombre\":\"Producto de prueba\",\"precioVenta\":1000,"
+                + "\"stockInicial\":5,\"stockMinimo\":2,\"categoria\":\"CategoriaSku\"}";
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void elCodigoDebeSerUnSkuNumerico() throws Exception {
+        mockMvc.perform(post("/api/categorias").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nombre\":\"CategoriaSku\",\"descripcion\":\"x\"}"));
+
+        // Con letras, con guion, con espacios, muy corto o muy largo: 400 con el mensaje del SKU.
+        for (String malo : new String[]{"BEB-001", "P001", "1234 5678", "123", "123456789012345"}) {
+            mockMvc.perform(post("/api/productos").contentType(MediaType.APPLICATION_JSON).content(producto(malo)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("SKU")));
+        }
+
+        // Entre 4 y 14 dígitos, conservando los ceros a la izquierda.
+        mockMvc.perform(post("/api/productos").contentType(MediaType.APPLICATION_JSON).content(producto("0001234")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.codigo").value("0001234"));
+        mockMvc.perform(post("/api/productos").contentType(MediaType.APPLICATION_JSON).content(producto("7701234567890")))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/productos").contentType(MediaType.APPLICATION_JSON).content(producto("1234")))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/productos").contentType(MediaType.APPLICATION_JSON).content(producto("12345678901234")))
+                .andExpect(status().isCreated());
     }
 
     @Test

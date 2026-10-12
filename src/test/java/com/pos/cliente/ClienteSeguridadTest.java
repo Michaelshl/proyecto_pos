@@ -79,6 +79,31 @@ class ClienteSeguridadTest {
 
     @Test
     @WithMockUser(roles = "CAJERO")
+    void unNitSeCreaConRazonSocialYSinApellido() throws Exception {
+        mockMvc.perform(post("/api/clientes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipoDocumento\":\"NIT\",\"numeroDocumento\":\"900700700-1\","
+                                + "\"nombre\":\"Distribuciones El Sol S.A.S.\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nombre").value("Distribuciones El Sol S.A.S."))
+                .andExpect(jsonPath("$.apellido").doesNotExist());
+
+        mockMvc.perform(get("/api/clientes/900700700-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tipoDocumento").value("NIT"))
+                .andExpect(jsonPath("$.apellido").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAJERO")
+    void unaPersonaSinApellidoDa400() throws Exception {
+        mockMvc.perform(post("/api/clientes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipoDocumento\":\"CC\",\"numeroDocumento\":\"7000009\",\"nombre\":\"Ana\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El apellido es obligatorio"));
+    }
+
+    @Test
+    @WithMockUser(roles = "CAJERO")
     void crearConJsonVacioDa400() throws Exception {
         mockMvc.perform(post("/api/clientes").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
