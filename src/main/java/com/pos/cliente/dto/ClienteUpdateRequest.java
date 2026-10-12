@@ -14,11 +14,12 @@ public class ClienteUpdateRequest {
     @Pattern(regexp = "CC|CE|TI|NIT|PP", message = "El tipo de documento debe ser CC, CE, TI, NIT o PP")
     private String tipoDocumento;
 
-    @NotBlank(message = "El nombre es obligatorio")
-    @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
+    // Para un NIT es la razón social de la empresa.
+    @NotBlank(message = "El nombre (o la razón social, si es NIT) es obligatorio")
+    @Size(max = 150, message = "El nombre no puede superar 150 caracteres")
     private String nombre;
 
-    @NotBlank(message = "El apellido es obligatorio")
+    // Obligatorio para las personas y no aplica a un NIT (lo valida el servicio según el tipo de documento).
     @Size(max = 100, message = "El apellido no puede superar 100 caracteres")
     private String apellido;
 

@@ -149,9 +149,9 @@ Ninguna tabla usa llaves autogeneradas; cada una usa un dato propio de la entida
 | `roles` | `nombre` (en mayúsculas, ej. `ADMIN`) |
 | `categorias` | `nombre` |
 | `tokens_revocados` | `jti` |
-| `productos` | `codigo` |
+| `productos` | `codigo` (SKU numérico de 4 a 14 dígitos, guardado como texto para no perder ceros) |
 | `ajustes_stock` | (`producto_codigo`, `consecutivo`): llave compuesta |
-| `clientes` | `numero_documento` (el `tipo_documento` es una columna normal) |
+| `clientes` | `numero_documento` (el `tipo_documento` es una columna normal). Con NIT, `nombre` es la razón social y no hay apellido |
 
 `usuarios.rol_nombre` y `rol_permisos.rol_nombre` son llaves foráneas hacia `roles.nombre`.
 
@@ -166,13 +166,14 @@ El esquema lo manejan scripts SQL versionados con [Flyway](https://flywaydb.org)
 ```
 V1__esquema_inicial.sql      usuarios, roles, rol_permisos, categorias, tokens_revocados
 V2__productos_y_clientes.sql productos, ajustes_stock, clientes
-V3__...                      (siguientes sprints)
+V3__clientes_razon_social.sql apellido opcional y nombre de hasta 150 caracteres (razón social de un NIT)
+V4__...                      (siguientes sprints)
 ```
 
 Al arrancar, Flyway compara los scripts con la tabla `flyway_schema_history` de la base y ejecuta solo los que faltan, así que una base nueva o una antigua quedan al día sin borrar datos. Hibernate solo valida (`ddl-auto=validate`): si una entidad no coincide con la base, la aplicación no arranca y el mensaje dice qué columna falta.
 
 Para cambiar el esquema:
-1. Crear un archivo nuevo con el siguiente número, por ejemplo `V3__ventas.sql`. Guion bajo doble entre el número y la descripción.
+1. Crear un archivo nuevo con el siguiente número, por ejemplo `V4__ventas.sql`. Guion bajo doble entre el número y la descripción.
 2. **Nunca editar un script que ya se aplicó**: Flyway detecta el cambio y no deja arrancar. Una corrección va en un script nuevo.
 3. Actualizar la entidad JPA y el diagrama (`docs/modelo-de-datos.md`).
 

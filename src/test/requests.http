@@ -100,7 +100,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "codigo": "P001",
+  "codigo": "100001",
   "nombre": "Coca-Cola 1.5L",
   "descripcion": "Gaseosa",
   "precioVenta": 5500.50,
@@ -110,7 +110,7 @@ Authorization: Bearer {{token}}
 }
 
 ### Actualizar producto (RF-014)
-PUT http://localhost:8081/api/productos/P001
+PUT http://localhost:8081/api/productos/100001
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -123,7 +123,7 @@ Authorization: Bearer {{token}}
 }
 
 ### Consultar producto por código (RF-015)
-GET http://localhost:8081/api/productos/P001
+GET http://localhost:8081/api/productos/100001
 Authorization: Bearer {{token}}
 
 ### Listar productos con filtros (RF-016): categoria, activo y nombre son opcionales
@@ -135,7 +135,7 @@ GET http://localhost:8081/api/productos/sugerencias?q=co
 Authorization: Bearer {{token}}
 
 ### Inactivar producto (RF-017)
-PATCH http://localhost:8081/api/productos/P001/inactivar
+PATCH http://localhost:8081/api/productos/100001/inactivar
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -144,11 +144,11 @@ Authorization: Bearer {{token}}
 }
 
 ### Consultar stock (RF-018, solo ADMIN)
-GET http://localhost:8081/api/productos/P001/stock
+GET http://localhost:8081/api/productos/100001/stock
 Authorization: Bearer {{token}}
 
 ### Ajustar stock (RF-019, solo ADMIN): cantidad positiva suma, negativa resta
-POST http://localhost:8081/api/productos/P001/ajustes
+POST http://localhost:8081/api/productos/100001/ajustes
 Content-Type: application/json
 Authorization: Bearer {{token}}
 

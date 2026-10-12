@@ -49,6 +49,16 @@ class ClienteRepositoryTest {
     }
 
     @Test
+    void unNitSinApellidoSeGuardaYSeEncuentraPorSuRazonSocial() {
+        Cliente empresa = cliente("901234567-8", "NIT", "Distribuciones El Sol", null);
+        repository.saveAndFlush(empresa);
+
+        assertNull(repository.findById("901234567-8").orElseThrow().getApellido());
+        assertEquals(List.of("901234567-8"), numeros("sol"));
+        assertEquals(List.of("901234567-8"), numeros("90123"));
+    }
+
+    @Test
     void sugierePorNombreOApellidoQueLoContiene() {
         // "ana" está en el nombre de Ana y en el apellido de Anaya; se ordena por apellido: Anaya, Lopez.
         assertEquals(List.of("1002", "1001"), numeros("ana"));

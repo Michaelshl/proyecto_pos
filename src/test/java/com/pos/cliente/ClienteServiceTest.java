@@ -108,6 +108,78 @@ class ClienteServiceTest {
         assertNull(res.getDireccion());
     }
 
+    // ---- NIT: razón social, sin apellido ----
+
+    private ClienteRequest solicitudNit(String apellido) {
+        ClienteRequest r = solicitud("900123456-7");
+        r.setTipoDocumento("NIT");
+        r.setNombre("Distribuciones El Sol S.A.S.");
+        r.setApellido(apellido);
+        return r;
+    }
+
+    @Test
+    void crearUnNitGuardaLaRazonSocialSinApellido() {
+        when(clienteRepository.existsById("900123456-7")).thenReturn(false);
+
+        ClienteResponse r = service.crear(solicitudNit(null));
+
+        assertEquals("NIT", r.getTipoDocumento());
+        assertEquals("Distribuciones El Sol S.A.S.", r.getNombre());
+        assertNull(r.getApellido());
+        verify(clienteRepository).save(argThat(c -> c.getApellido() == null));
+    }
+
+    @Test
+    void crearUnNitIgnoraElApellidoSiLlegaAlgo() {
+        when(clienteRepository.existsById("900123456-7")).thenReturn(false);
+
+        assertNull(service.crear(solicitudNit("Perez")).getApellido());
+    }
+
+    @Test
+    void crearUnaPersonaSinApellidoDa400() {
+        when(clienteRepository.existsById("1001")).thenReturn(false);
+        ClienteRequest r = solicitud("1001");
+        r.setApellido("  ");
+
+        ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> service.crear(r));
+
+        assertEquals(400, estado(e));
+        assertEquals("El apellido es obligatorio", e.getReason());
+        verify(clienteRepository, never()).save(any());
+    }
+
+    @Test
+    void actualizarDePersonaANitBorraElApellido() {
+        when(clienteRepository.findById("1001")).thenReturn(Optional.of(existente("1001")));
+        ClienteUpdateRequest u = cambio();
+        u.setTipoDocumento("NIT");
+        u.setNombre("Empresa Ejemplo");
+        u.setApellido("Lopez");
+
+        ClienteResponse r = service.actualizar("1001", u);
+
+        assertEquals("NIT", r.getTipoDocumento());
+        assertNull(r.getApellido());
+    }
+
+    @Test
+    void actualizarDeNitAPersonaSinApellidoDa400() {
+        Cliente nit = existente("9001");
+        nit.setTipoDocumento("NIT");
+        nit.setApellido(null);
+        when(clienteRepository.findById("9001")).thenReturn(Optional.of(nit));
+        ClienteUpdateRequest u = cambio();
+        u.setTipoDocumento("CC");
+        u.setApellido(null);
+
+        ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> service.actualizar("9001", u));
+
+        assertEquals(400, estado(e));
+        verify(clienteRepository, never()).save(any());
+    }
+
     // ---- RF-021 actualizar ----
 
     @Test

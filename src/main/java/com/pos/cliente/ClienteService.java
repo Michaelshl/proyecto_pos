@@ -34,7 +34,7 @@ public class ClienteService {
         cliente.setNumeroDocumento(numero);
         cliente.setTipoDocumento(request.getTipoDocumento());
         cliente.setNombre(request.getNombre().trim());
-        cliente.setApellido(request.getApellido().trim());
+        cliente.setApellido(apellidoSegunTipo(request.getTipoDocumento(), request.getApellido()));
         cliente.setEmail(vacioANulo(request.getEmail()));
         cliente.setTelefono(vacioANulo(request.getTelefono()));
         cliente.setDireccion(vacioANulo(request.getDireccion()));
@@ -47,7 +47,7 @@ public class ClienteService {
         Cliente cliente = obtener(numeroDocumento);
         cliente.setTipoDocumento(request.getTipoDocumento());
         cliente.setNombre(request.getNombre().trim());
-        cliente.setApellido(request.getApellido().trim());
+        cliente.setApellido(apellidoSegunTipo(request.getTipoDocumento(), request.getApellido()));
         cliente.setEmail(vacioANulo(request.getEmail()));
         cliente.setTelefono(vacioANulo(request.getTelefono()));
         cliente.setDireccion(vacioANulo(request.getDireccion()));
@@ -74,6 +74,19 @@ public class ClienteService {
     private Cliente obtener(String numeroDocumento) {
         return clienteRepository.findById(numeroDocumento.trim())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente no encontrado"));
+    }
+
+    // Una empresa (NIT) tiene razón social y no apellido: se guarda siempre como NULL, aunque llegue algo.
+    // Una persona (CC, CE, TI, PP) debe tener apellido.
+    private static String apellidoSegunTipo(String tipoDocumento, String apellido) {
+        if ("NIT".equals(tipoDocumento)) {
+            return null;
+        }
+        String limpio = vacioANulo(apellido);
+        if (limpio == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El apellido es obligatorio");
+        }
+        return limpio;
     }
 
     // Un campo opcional vacío se guarda como NULL, no como texto en blanco.
