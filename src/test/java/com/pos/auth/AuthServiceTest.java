@@ -65,6 +65,34 @@ class AuthServiceTest {
     }
 
     @Test
+    void loginDevuelveElNombreYApellidoParaMostrar() {
+        usuario.setNombre("  Laura ");
+        usuario.setApellido("Gómez");
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario));
+        when(jwtUtil.generarToken("1001", "ADMIN")).thenReturn("el-token");
+
+        assertEquals("Laura Gómez", authService.login(request("1001", "clave-correcta")).getNombre());
+    }
+
+    @Test
+    void loginConSoloUnNombreNoDejaEspaciosSobrantes() {
+        usuario.setNombre("Laura");
+        usuario.setApellido(null);
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario));
+        when(jwtUtil.generarToken("1001", "ADMIN")).thenReturn("el-token");
+
+        assertEquals("Laura", authService.login(request("1001", "clave-correcta")).getNombre());
+    }
+
+    @Test
+    void loginSinNombreNiApellidoMuestraLaCedula() {
+        when(usuarioRepository.findById("1001")).thenReturn(Optional.of(usuario));
+        when(jwtUtil.generarToken("1001", "ADMIN")).thenReturn("el-token");
+
+        assertEquals("1001", authService.login(request("1001", "clave-correcta")).getNombre());
+    }
+
+    @Test
     void usuarioInexistenteDa401() {
         when(usuarioRepository.findById("9999")).thenReturn(Optional.empty());
 

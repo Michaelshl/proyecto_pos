@@ -61,7 +61,7 @@ Desde ahí, los demás usuarios se crean por la API.
 
 ## Autenticación
 
-`POST /api/auth/login` devuelve un JWT que dura 2 horas. Se envía en cada petición:
+`POST /api/auth/login` (cédula y contraseña) devuelve `{ "token": "...", "nombre": "Nombre Apellido" }`; el nombre lo usa la interfaz para el encabezado ("Conectado como ..."). El JWT dura 2 horas. Se envía en cada petición:
 
 ```
 Authorization: Bearer <token>

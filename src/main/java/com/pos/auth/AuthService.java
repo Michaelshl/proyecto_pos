@@ -62,7 +62,14 @@ public class AuthService {
 
         String rol = usuario.getRol() != null ? usuario.getRol().getNombre() : null;
         String token = jwtUtil.generarToken(usuario.getCedula(), rol);
-        return new LoginResponse(token);
+        return new LoginResponse(token, nombreParaMostrar(usuario));
+    }
+
+    // "Nombre Apellido"; si el usuario no tiene ninguno de los dos, su cédula.
+    private static String nombreParaMostrar(Usuario usuario) {
+        String nombre = ((usuario.getNombre() == null ? "" : usuario.getNombre().trim()) + " "
+                + (usuario.getApellido() == null ? "" : usuario.getApellido().trim())).trim();
+        return nombre.isEmpty() ? usuario.getCedula() : nombre;
     }
 
     // Un JWT no se puede "destruir", así que se guarda su identificador (jti) en una lista
