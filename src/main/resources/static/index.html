@@ -96,7 +96,7 @@
 <div id="vista-login" class="container">
   <div class="card login-box">
     <h2>Iniciar sesión</h2>
-    <input id="l-cedula" placeholder="Cédula" autocomplete="username" inputmode="numeric" />
+    <input id="l-cedula" placeholder="Cédula (solo números)" autocomplete="username" inputmode="numeric" pattern="[0-9]*" maxlength="12" />
     <input id="l-password" placeholder="Contraseña" type="password" autocomplete="current-password" />
     <button class="btn-primary" onclick="login()">Entrar</button>
     <div id="msg-login" class="msg"></div>
@@ -445,11 +445,13 @@
         mostrar('msg-login', false, err.message || 'Login fallido');
         return;
       }
-      token = (await res.json()).token;
+      const sesion = await res.json();
+      token = sesion.token;
       msg.style.display = 'none';
       document.getElementById('l-password').value = '';
       const rol = rolDelToken(token);
-      document.getElementById('status').textContent = 'Conectado como ' + cedula + (rol ? ' (' + rol + ')' : '');
+      // Se muestra el nombre de la persona; la cédula solo si el usuario no tiene nombre.
+      document.getElementById('status').textContent = 'Conectado como ' + (sesion.nombre || cedula) + (rol ? ' (' + rol + ')' : '');
       rolActual = rol;
       aplicarRol(rol);
       mostrarVista(true);
@@ -1359,6 +1361,12 @@
 
   document.getElementById('l-password').addEventListener('keydown', e => {
     if (e.key === 'Enter') login();
+  });
+
+  // La cédula solo tiene dígitos: cualquier otro carácter (escrito o pegado) se descarta al instante.
+  document.getElementById('l-cedula').addEventListener('input', e => {
+    const soloNumeros = e.target.value.replace(/\D/g, '');
+    if (soloNumeros !== e.target.value) e.target.value = soloNumeros;
   });
 
 
