@@ -42,3 +42,9 @@ Thumbs.db
 ### Logs ###
 *.log
 logs/
+
+### Llaves y certificados ###
+*.pem
+*.key
+*.jks
+*.p12
