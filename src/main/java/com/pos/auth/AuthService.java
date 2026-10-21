@@ -1,5 +1,6 @@
 package com.pos.auth;
 
+import com.pos.auditoria.Auditoria;
 import com.pos.auth.dto.LoginRequest;
 import com.pos.auth.dto.LoginResponse;
 import com.pos.usuario.Usuario;
@@ -46,12 +47,14 @@ public class AuthService {
         // Nunca desencriptamos la contraseña — BCrypt es un hash unidireccional.
         boolean claveCorrecta = passwordEncoder.matches(request.getPassword(), hash);
         if (usuario == null || !claveCorrecta) {
+            Auditoria.alerta("Login fallido", "cédula '" + Auditoria.limpiar(request.getCedula()) + "'");
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
 
         // Solo se revela que la cuenta está inactiva cuando la contraseña es correcta.
         if (!Boolean.TRUE.equals(usuario.getActivo())) {
+            Auditoria.alerta("Login rechazado (usuario inactivo)", "cédula '" + usuario.getCedula() + "'");
             String motivo = usuario.getMotivoInactivacion();
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
@@ -62,6 +65,7 @@ public class AuthService {
 
         String rol = usuario.getRol() != null ? usuario.getRol().getNombre() : null;
         String token = jwtUtil.generarToken(usuario.getCedula(), rol);
+        Auditoria.evento("Login exitoso", "cédula '" + usuario.getCedula() + "'");
         return new LoginResponse(token, nombreParaMostrar(usuario));
     }
 
@@ -76,6 +80,7 @@ public class AuthService {
     // de revocación que el filtro consulta en cada petición.
     public String logout(String token) {
         tokenRevocadoService.revocar(token);
+        Auditoria.accion("Cierre de sesión", "sesión terminada");
         return "Sesión cerrada exitosamente";
     }
 }

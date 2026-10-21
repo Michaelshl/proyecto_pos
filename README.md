@@ -119,6 +119,7 @@ src/main/java/com/pos/
   security/     JWT, filtro, reglas por rol y tokens revocados
   exception/    Manejo global de errores
   config/       Carga inicial de roles y del primer administrador
+  auditoria/    Registro de eventos de seguridad y acciones sensibles (log)
 postman/        Colección de Postman
 ```
 
@@ -181,6 +182,21 @@ Las pruebas automáticas usan H2 y arman el esquema desde las entidades, sin Fly
 
 Si la base `pos_db` se creó antes de Flyway (con `ddl-auto=update`), hay que recrearla una sola vez: `DROP DATABASE pos_db; CREATE DATABASE pos_db;`.
 
+## Logs
+
+La aplicación escribe en la consola y en `logs/pos.log` (la carpeta `logs/` no se sube a Git). El archivo rota al llegar a 10 MB, conserva 14 días y no pasa de 100 MB en total. Las consultas SQL no se imprimen; para depurar se arranca con la variable de entorno `SHOW_SQL=true`.
+
+Los eventos de seguridad y las acciones sensibles salen con el nombre `AUDITORIA`, con quién, qué y sobre qué (nunca contraseñas ni tokens):
+
+| Evento | Nivel | Ejemplo |
+|---|---|---|
+| Login exitoso / fallido / rechazado por usuario inactivo | INFO / WARN / WARN | `Login fallido: cédula '1000000002'` |
+| Acceso sin sesión válida (401) y acceso denegado (403) | WARN | `Acceso denegado (403): usuario 1000000002, POST /api/productos desde 127.0.0.1` |
+| Cierre de sesión | INFO | `Cierre de sesión por 1000000002: sesión terminada` |
+| Crear usuario, rol, categoría, producto o cliente; actualizar usuario, producto o cliente; asignar rol; inactivar usuario o producto; ajustar stock | INFO | `Ajuste de stock por 1000000001: producto 100001, cantidad -5, stock nuevo 5, motivo: Producto vencido` |
+
+Lo que escribe el cliente (una cédula en el login, una ruta) se recorta y se le quitan los saltos de línea, para que nadie pueda inventar líneas falsas en el log.
+
 ## Deuda técnica
 
 Mejoras de seguridad y calidad conocidas que se dejaron para más adelante (el proyecto no es comercial):
@@ -188,8 +204,8 @@ Mejoras de seguridad y calidad conocidas que se dejaron para más adelante (el p
 - **Usuario de MySQL con permisos mínimos.** La aplicación se conecta con `root` por defecto (`DB_USER`). Lo recomendable es crear un usuario `pos_app` con permisos solo sobre `pos_db` (`SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, REFERENCES`; los de estructura los necesita Flyway). Opcional en desarrollo local, obligatorio si algún día se despliega en un servidor.
 - Límite de intentos (rate limiting) en el login.
 - CORS sin configurar y Swagger accesible sin autenticación.
-- `spring.jpa.show-sql` activo y aviso de `open-in-view` al arrancar.
-- **Logs:** no hay configuración propia de logging. Salen solo por consola (Logback con el nivel INFO por defecto), sin archivo ni rotación. El código registra únicamente 3 eventos: el administrador inicial creado, el aviso si faltan sus variables y los errores 500 con su traza. No se registran los intentos de login fallidos, los 401/403, ni las acciones sensibles (inactivar, ajustar stock, asignar rol); el único historial de negocio son los motivos guardados en la base (`ajustes_stock`, `motivo_inactivacion`). `show-sql` imprime cada consulta por consola.
+- Aviso de `open-in-view` al arrancar.
+- **Auditoría solo en el log:** las acciones sensibles quedan en el archivo de log, no en una tabla de la base; el log rota y se borra con el tiempo, así que no sirve como historial permanente. Tampoco se registran las consultas (lecturas).
 - `@Data` de Lombok en la entidad `Usuario`.
 - Los permisos de `rol_permisos` todavía no gobiernan el acceso: las rutas se protegen por rol en `SecurityConfig`.
 - No existe una función para reactivar un usuario inactivo (no está en los requisitos).

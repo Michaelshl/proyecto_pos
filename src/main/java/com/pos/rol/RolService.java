@@ -1,5 +1,6 @@
 package com.pos.rol;
 
+import com.pos.auditoria.Auditoria;
 import com.pos.rol.dto.RolRequest;
 import com.pos.rol.dto.RolResponse;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,7 @@ public class RolService {
         // Sin repetidos: (rol, permiso) es la llave primaria de rol_permisos.
         rol.setPermisos(new ArrayList<>(new LinkedHashSet<>(request.getPermisos())));
         rolRepository.save(rol);
+        Auditoria.accion("Rol creado", "nombre " + rol.getNombre() + ", permisos " + rol.getPermisos());
 
         return toResponse(rol);
     }
