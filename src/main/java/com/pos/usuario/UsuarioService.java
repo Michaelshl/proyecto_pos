@@ -1,5 +1,6 @@
 package com.pos.usuario;
 
+import com.pos.auditoria.Auditoria;
 import com.pos.usuario.dto.InactivarRequest;
 import com.pos.usuario.dto.UsuarioRequest;
 import com.pos.usuario.dto.UsuarioResponse;
@@ -67,6 +68,7 @@ public class UsuarioService {
         usuario.setRol(rol);
 
         usuarioRepository.save(usuario);
+        Auditoria.accion("Usuario creado", "cédula " + usuario.getCedula() + ", rol " + rol.getNombre());
         return toResponse(usuario);
     }
 
@@ -88,6 +90,7 @@ public class UsuarioService {
         usuario.setEmail(request.getEmail());
 
         usuarioRepository.save(usuario);
+        Auditoria.accion("Usuario actualizado", "cédula " + usuario.getCedula());
         return toResponse(usuario);
     }
 
@@ -112,6 +115,7 @@ public class UsuarioService {
         usuario.setActivo(false);
         usuario.setMotivoInactivacion(motivo);
         usuarioRepository.save(usuario);
+        Auditoria.accion("Usuario inactivado", "cédula " + usuario.getCedula() + ", motivo: " + motivo);
         return "Usuario inactivado exitosamente";
     }
 
@@ -161,6 +165,7 @@ public class UsuarioService {
 
         usuario.setRol(rol);
         usuarioRepository.save(usuario);
+        Auditoria.accion("Rol asignado", "cédula " + usuario.getCedula() + ", nuevo rol " + rol.getNombre());
         return toResponse(usuario);
     }
 

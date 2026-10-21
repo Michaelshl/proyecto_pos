@@ -1,5 +1,6 @@
 package com.pos.categoria;
 
+import com.pos.auditoria.Auditoria;
 import com.pos.categoria.dto.CategoriaListaResponse;
 import com.pos.categoria.dto.CategoriaRequest;
 import com.pos.categoria.dto.CategoriaResponse;
@@ -28,6 +29,7 @@ public class CategoriaService {
         categoria.setNombre(nombre);
         categoria.setDescripcion(request.getDescripcion());
         categoriaRepository.save(categoria);
+        Auditoria.accion("Categoría creada", "nombre " + categoria.getNombre());
         return toResponse(categoria);
     }
 

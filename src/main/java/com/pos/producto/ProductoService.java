@@ -1,5 +1,6 @@
 package com.pos.producto;
 
+import com.pos.auditoria.Auditoria;
 import com.pos.categoria.Categoria;
 import com.pos.categoria.CategoriaRepository;
 import com.pos.producto.dto.AjusteStockRequest;
@@ -53,6 +54,7 @@ public class ProductoService {
         producto.setActivo(request.getActivo() == null || request.getActivo());
         producto.setCategoria(buscarCategoria(request.getCategoria()));
         productoRepository.save(producto);
+        Auditoria.accion("Producto creado", "código " + producto.getCodigo());
         return toResponse(producto);
     }
 
@@ -66,6 +68,7 @@ public class ProductoService {
         producto.setStockMinimo(request.getStockMinimo());
         producto.setCategoria(buscarCategoria(request.getCategoria()));
         productoRepository.save(producto);
+        Auditoria.accion("Producto actualizado", "código " + producto.getCodigo());
         return toResponse(producto);
     }
 
@@ -102,6 +105,7 @@ public class ProductoService {
         producto.setActivo(false);
         producto.setMotivoInactivacion(motivo);
         productoRepository.save(producto);
+        Auditoria.accion("Producto inactivado", "código " + producto.getCodigo() + ", motivo: " + motivo);
         return toResponse(producto);
     }
 
@@ -137,6 +141,8 @@ public class ProductoService {
         ajuste.setMotivo(request.getMotivo().trim());
         ajuste.setFecha(LocalDateTime.now());
         ajusteStockRepository.save(ajuste);
+        Auditoria.accion("Ajuste de stock", "producto " + producto.getCodigo() + ", cantidad " + request.getCantidad()
+                + ", stock nuevo " + nuevoStock + ", motivo: " + ajuste.getMotivo());
 
         return new StockResponse(producto.getCodigo(), producto.getNombre(), nuevoStock,
                 producto.getStockMinimo(), nuevoStock <= producto.getStockMinimo());

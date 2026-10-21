@@ -1,5 +1,6 @@
 package com.pos.cliente;
 
+import com.pos.auditoria.Auditoria;
 import com.pos.cliente.dto.ClienteRequest;
 import com.pos.cliente.dto.ClienteResponse;
 import com.pos.cliente.dto.ClienteSugerencia;
@@ -39,6 +40,7 @@ public class ClienteService {
         cliente.setTelefono(vacioANulo(request.getTelefono()));
         cliente.setDireccion(vacioANulo(request.getDireccion()));
         clienteRepository.save(cliente);
+        Auditoria.accion("Cliente creado", "documento " + cliente.getNumeroDocumento());
         return toResponse(cliente);
     }
 
@@ -52,6 +54,7 @@ public class ClienteService {
         cliente.setTelefono(vacioANulo(request.getTelefono()));
         cliente.setDireccion(vacioANulo(request.getDireccion()));
         clienteRepository.save(cliente);
+        Auditoria.accion("Cliente actualizado", "documento " + cliente.getNumeroDocumento());
         return toResponse(cliente);
     }
 
