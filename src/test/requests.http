@@ -148,16 +148,19 @@ GET http://localhost:8081/api/productos/100001/stock
 Authorization: Bearer {{token}}
 
 ### Ajustar stock (RF-019, solo ADMIN): cantidad positiva suma, negativa resta
+### tipoMotivo es de una lista cerrada: INGRESO_COMPRA y DEVOLUCION_CLIENTE solo suman; DANO, VENCIMIENTO y
+### PERDIDA solo restan; CONTEO_FISICO suma o resta. "motivo" es la observación (mínimo 5 caracteres).
 POST http://localhost:8081/api/productos/100001/ajustes
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
   "cantidad": -3,
+  "tipoMotivo": "VENCIMIENTO",
   "motivo": "Producto vencido"
 }
 
-### Crear cliente (RF-020, ADMIN y CAJERO): tipoDocumento es CC, CE, TI, NIT o PP; email, telefono y direccion son opcionales
+### Crear cliente (RF-020, ADMIN y CAJERO): tipoDocumento es CC, CE, TI, NIT, PP o PPT; email y telefono son obligatorios; direccion es opcional
 POST http://localhost:8081/api/clientes
 Content-Type: application/json
 Authorization: Bearer {{token}}

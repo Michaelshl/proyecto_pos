@@ -40,10 +40,12 @@ Además: autocompletado en Consultar, Actualizar, Inactivar y Stock (productos) 
 | 8 | Actualizar → elegir `100001`, cambiar el precio a `5600` → Actualizar | La ventana muestra solo `Precio: $ 5.500 → $ 5.600`; al aceptar, "Producto actualizado" |
 | 9 | Actualizar sin cambiar nada | "No hay cambios para guardar" |
 | 10 | Stock → elegir `100001` → Consultar stock | "stock actual 10, stock mínimo 5" |
-| 11 | Stock → ajuste `-5`, motivo `Producto vencido` → Ajustar | La ventana muestra stock actual 10, ajuste -5, stock nuevo 5; al aceptar: "Stock actualizado: 5 (ALERTA: igual o menor al mínimo de 5)" |
+| 11 | Stock → ajuste `-5`, tipo de motivo `Producto vencido (resta)`, observación `Producto vencido` → Ajustar | La ventana muestra stock actual 10, ajuste -5, stock nuevo 5; al aceptar: "Stock actualizado: 5 (ALERTA: igual o menor al mínimo de 5)" |
 | 12 | Stock → ajuste `-50` | "El ajuste dejaría el stock en negativo" y no pide confirmación |
-| 13 | Stock → ajuste `0` o sin motivo | Mensaje de validación |
+| 13 | Stock → ajuste `0`, sin tipo de motivo o con observación de menos de 5 caracteres | Mensaje de validación |
+| 13b | Stock → ajuste `-1` con tipo `Ingreso por compra al proveedor (suma)` | "Ese motivo solo sirve para sumar stock": una salida no puede declararse como compra. Lo mismo al revés: `+3` con `Producto dañado (resta)` |
 | 14 | Listado | `100001` muestra stock 5 con la insignia amarilla "Stock bajo" |
+| 14b | Listado, filtrando por una categoría con varios productos | Primero los activos, de menor a mayor stock; los inactivos al final, también de menor a mayor stock |
 | 15 | Inactivar → elegir `100001`, motivo `Descontinuado` → Inactivar | La ventana advierte que no podrá incluirse en ventas ni reactivarse; al aceptar: "Producto inactivado" |
 | 16 | Listado → estado `Inactivos` | `100001` aparece como Inactivo y ya no tiene botón Inactivar |
 | 17 | Consultar `100001` | La ficha muestra el estado Inactivo y el motivo |
@@ -66,11 +68,13 @@ Los requisitos del Sprint 2 son solo crear y actualizar (RF-020, RF-021). La pes
 
 | # | Acción | Resultado esperado |
 |---|---|---|
-| 1 | Clientes → Crear: tipo `CC`, documento `1020304050`, nombre `Ana`, apellido `Lopez` (correo, teléfono y dirección vacíos) | "Cliente Ana Lopez creado (CC 1020304050)" |
-| 2 | Crear otro: al elegir el tipo `NIT`, el campo "Nombre" pasa a ser **"Razón social"** y desaparece el apellido. Documento `900123456-7`, razón social `Distribuciones El Sol S.A.S.` | Se crea (el guion es válido) y el mensaje dice "Cliente Distribuciones El Sol S.A.S. creado (NIT 900123456-7)" |
+| 1 | Clientes → Crear: tipo `CC`, documento `1020304050`, nombre `Ana`, apellido `Lopez`, correo `ana@correo.com`, teléfono `3001234567` (correo y teléfono son obligatorios; la dirección se puede dejar vacía) | "Cliente Ana Lopez creado (CC 1020304050)" |
+| 2 | Crear otro: al elegir el tipo `NIT`, el campo "Nombre" pasa a ser **"Razón social"** y desaparece el apellido. Documento `900123456-7`, razón social `Distribuciones El Sol S.A.S.`, correo y teléfono | Se crea (el guion es válido) y el mensaje dice "Cliente Distribuciones El Sol S.A.S. creado (NIT 900123456-7)" |
 | 2b | Consultar ese NIT | La ficha dice "Razón social" y no muestra apellido |
 | 2c | Crear una persona (`CC`) sin apellido | Error "El apellido es obligatorio" (solo las personas lo necesitan) |
 | 3 | Repetir el documento `1020304050` | "Ya existe un cliente con ese número de documento" |
+| 3b | Crear con tipo `PPT` (permiso por protección temporal), documento `5550001`, nombre, apellido, correo y teléfono | Se crea como cualquier persona (lleva apellido) |
+| 3c | Crear sin correo o sin teléfono | "El correo electrónico es obligatorio" / "El teléfono es obligatorio" |
 | 4 | Crear con correo `abc` | Error de formato de correo |
 | 5 | Crear con teléfono `abc` | Error de formato de teléfono |
 | 6 | Consultar → escribir `lop` → elegir de la lista | Ficha con documento, nombre y `(sin correo)`, `(sin teléfono)`, `(sin dirección)` |
@@ -82,7 +86,7 @@ Los requisitos del Sprint 2 son solo crear y actualizar (RF-020, RF-021). La pes
 
 1. Importar `postman/POS_API.postman_collection.json`.
 2. Rellenar las variables de la colección: `baseUrl` (por ejemplo `http://localhost:8081`), `adminCedula` y `adminPassword`.
-3. Ejecutar la colección completa (Run). Resultado esperado: **59 requests y 59 pruebas, todas en verde** (el 2026-10-11 la colección tenía 56 y pasó completa; las 3 nuevas, del SKU y del NIT, aún no se han ejecutado en Postman). **No ejecutarla contra `pos_db`**: crea productos y clientes de prueba (e inactiva uno); usar una base aparte. Se puede ejecutar varias veces: los casos de "crear" aceptan 201 o 400 si ya existe.
+3. Ejecutar la colección completa (Run). Resultado esperado: **63 requests y 63 pruebas, todas en verde** (el 2026-10-11 la colección tenía 56 y pasó completa; las 7 nuevas —SKU, NIT, tipo PPT, correo y teléfono obligatorios y ajuste incoherente— aún no se han ejecutado en Postman). **No ejecutarla contra `pos_db`**: crea productos y clientes de prueba (e inactiva uno); usar una base aparte. Se puede ejecutar varias veces: los casos de "crear" aceptan 201 o 400 si ya existe.
 
 Las carpetas nuevas son **Productos** (16), **Clientes** (10) y 7 casos nuevos dentro de **Control por rol (Cajero)**.
 
@@ -92,7 +96,7 @@ Las carpetas nuevas son **Productos** (16), **Clientes** (10) y 7 casos nuevos d
 ./mvnw test
 ```
 
-Resultado esperado: **144 pruebas, 0 fallos** (en Windows con certificados corporativos: `MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT`). Desde el Sprint 1 (64 pruebas) se agregaron 80: productos, clientes, login con nombre, SKU numérico y NIT.
+Resultado esperado: **165 pruebas, 0 fallos** (en Windows con certificados corporativos: `MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT`). Desde el Sprint 1 (64 pruebas) se agregaron 101: productos, clientes, login con nombre, SKU numérico, NIT, logs de auditoría, ajustes con tipo de motivo y contacto obligatorio.
 
 ## Resultado de la verificación automática (2026-10-11)
 

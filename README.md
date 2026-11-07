@@ -2,7 +2,7 @@
 
 Backend de un sistema de punto de venta para comercio minorista. Proyecto de Desarrollo de Software II, Universidad del Valle (sede Yumbo). La interfaz usa por ahora el nombre de tienda de ejemplo **Allmarket** (provisional).
 
-**Estado:** Sprint 1 completo (autenticación, usuarios, roles y categorías). Es una API REST con una página de pruebas en `http://localhost:8081` (`index.html`); también se prueba con Postman, Swagger o `requests.http`.
+**Estado:** Sprint 2 completo (autenticación, usuarios, roles, categorías, productos, inventario y clientes). Es una API REST con una página de pruebas en `http://localhost:8081` (`index.html`); también se prueba con Postman, Swagger o `requests.http`.
 
 ## Tecnologías
 
@@ -88,7 +88,7 @@ Authorization: Bearer <token>
 | `POST /api/productos` | RF-013 | ADMIN |
 | `PUT /api/productos/{codigo}` | RF-014 | ADMIN |
 | `GET /api/productos/{codigo}` | RF-015 | ADMIN y CAJERO |
-| `GET /api/productos?categoria=&activo=&nombre=` | RF-015, RF-016 (filtros opcionales) | ADMIN y CAJERO |
+| `GET /api/productos?categoria=&activo=&nombre=` | RF-015, RF-016 (filtros opcionales). Orden: activos primero y, dentro de cada grupo, menor stock primero; los inactivos al final | ADMIN y CAJERO |
 | `GET /api/productos/sugerencias?q=` | Apoyo de RF-015 (autocompletado) | ADMIN y CAJERO |
 | `PATCH /api/productos/{codigo}/inactivar` | RF-017 | ADMIN |
 | `GET /api/productos/{codigo}/stock` | RF-018 | ADMIN |
@@ -103,6 +103,18 @@ Todos los errores responden con el mismo formato:
 ```json
 { "timestamp": "...", "status": 400, "error": "Bad Request", "message": "...", "path": "/api/..." }
 ```
+
+**Ajuste de stock (RF-019).** El administrador no ajusta el stock "a su gusto": cada ajuste lleva un `tipoMotivo` de una lista cerrada y una observación (`motivo`, mínimo 5 caracteres), y el tipo debe ser coherente con el signo de la cantidad:
+
+| `tipoMotivo` | Admite |
+|---|---|
+| `INGRESO_COMPRA`, `DEVOLUCION_CLIENTE` | Solo sumar (cantidad positiva) |
+| `DANO`, `VENCIMIENTO`, `PERDIDA` | Solo restar (cantidad negativa) |
+| `CONTEO_FISICO` | Sumar o restar |
+
+Así, sacar unidades no se puede declarar como una compra. Además queda quién lo hizo y cuándo en `ajustes_stock`, y las salidas y los ajustes grandes generan una alerta (WARN) en el log de auditoría. Los ajustes anteriores a la `V4` quedan como `SIN_CLASIFICAR`.
+
+**Clientes (RF-020 y RF-021).** Tipos de documento: `CC`, `CE`, `TI`, `NIT`, `PP` y `PPT` (permiso por protección temporal). El correo y el teléfono son obligatorios al crear y al actualizar; la dirección es opcional. Los clientes que ya existían sin correo o teléfono conservan esos campos vacíos hasta que se actualicen, y ahí se les exige completarlos.
 
 Un token ausente, inválido, vencido o revocado responde 401; un rol sin permiso, 403. Un ajuste de stock que choca con otra operación sobre el mismo producto responde 409 (bloqueo optimista con `@Version`): basta con repetirlo.
 
@@ -158,7 +170,7 @@ Ninguna tabla usa llaves autogeneradas; cada una usa un dato propio de la entida
 
 ## Repositorio
 
-Ramas: `main` (código estable, entregado) y `develop` (trabajo en curso; cada funcionalidad nueva sale de ahí en una rama `feature/...`). La entrega del Sprint 1 quedó marcada con la etiqueta `sprint-1`.
+Ramas: `main` (código estable, entregado) y `develop` (trabajo en curso; cada funcionalidad nueva sale de ahí en una rama `feature/...`). Las entregas quedan marcadas con etiquetas: `sprint-1` y `sprint-2`.
 
 ## Migraciones de la base de datos
 
@@ -168,7 +180,8 @@ El esquema lo manejan scripts SQL versionados con [Flyway](https://flywaydb.org)
 V1__esquema_inicial.sql      usuarios, roles, rol_permisos, categorias, tokens_revocados
 V2__productos_y_clientes.sql productos, ajustes_stock, clientes
 V3__clientes_razon_social.sql apellido opcional y nombre de hasta 150 caracteres (razón social de un NIT)
-V4__...                      (siguientes sprints)
+V4__ajustes_stock_tipo_motivo.sql  tipo de motivo (lista cerrada) en cada ajuste de stock
+V5__...                      (siguientes sprints)
 ```
 
 Al arrancar, Flyway compara los scripts con la tabla `flyway_schema_history` de la base y ejecuta solo los que faltan, así que una base nueva o una antigua quedan al día sin borrar datos. Hibernate solo valida (`ddl-auto=validate`): si una entidad no coincide con la base, la aplicación no arranca y el mensaje dice qué columna falta.
@@ -193,7 +206,8 @@ Los eventos de seguridad y las acciones sensibles salen con el nombre `AUDITORIA
 | Login exitoso / fallido / rechazado por usuario inactivo | INFO / WARN / WARN | `Login fallido: cédula '1000000002'` |
 | Acceso sin sesión válida (401) y acceso denegado (403) | WARN | `Acceso denegado (403): usuario 1000000002, POST /api/productos desde 127.0.0.1` |
 | Cierre de sesión | INFO | `Cierre de sesión por 1000000002: sesión terminada` |
-| Crear usuario, rol, categoría, producto o cliente; actualizar usuario, producto o cliente; asignar rol; inactivar usuario o producto; ajustar stock | INFO | `Ajuste de stock por 1000000001: producto 100001, cantidad -5, stock nuevo 5, motivo: Producto vencido` |
+| Crear usuario, rol, categoría, producto o cliente; actualizar usuario, producto o cliente; asignar rol; inactivar usuario o producto; ajustar stock | INFO | `Ajuste de stock por 1000000001: producto 100001, cantidad -5, stock nuevo 5, tipo VENCIMIENTO, motivo: Producto vencido` |
+| Ajuste de stock que es una salida (cantidad negativa) o es grande (más del 20 % del stock o 50 unidades o más) | WARN | `ALERTA ajuste de stock (salida): usuario 1000000001, producto 100001, cantidad -5, ...` |
 
 Lo que escribe el cliente (una cédula en el login, una ruta) se recorta y se le quitan los saltos de línea, para que nadie pueda inventar líneas falsas en el log.
 
@@ -205,6 +219,7 @@ Mejoras de seguridad y calidad conocidas que se dejaron para más adelante (el p
 - Límite de intentos (rate limiting) en el login.
 - CORS sin configurar y Swagger accesible sin autenticación.
 - Aviso de `open-in-view` al arrancar.
+- **Controles del ajuste de stock que se podrían agregar:** (a) un **límite por ajuste** que rechace los ajustes muy grandes en vez de solo alertar, y (b) **aprobación de un segundo usuario**: el administrador solicita el ajuste y otra persona lo aprueba (requiere una tabla de solicitudes y su pantalla). Hoy el control es la lista cerrada de motivos, la coherencia con el signo, el historial en `ajustes_stock` y las alertas en el log.
 - **Auditoría solo en el log:** las acciones sensibles quedan en el archivo de log, no en una tabla de la base; el log rota y se borra con el tiempo, así que no sirve como historial permanente. Tampoco se registran las consultas (lecturas).
 - `@Data` de Lombok en la entidad `Usuario`.
 - Los permisos de `rol_permisos` todavía no gobiernan el acceso: las rutas se protegen por rol en `SecurityConfig`.

@@ -340,8 +340,20 @@
       </div>
       <div class="form-row">
         <input id="ps-cantidad" placeholder="Ajuste (+ suma, - resta)" type="number" step="1" />
-        <input id="ps-motivo" placeholder="Motivo del ajuste" maxlength="255" style="flex:3" />
+        <select id="ps-tipo" style="flex:2">
+          <option value="">Tipo de motivo…</option>
+          <option value="INGRESO_COMPRA">Ingreso por compra al proveedor (suma)</option>
+          <option value="DEVOLUCION_CLIENTE">Devolución de un cliente (suma)</option>
+          <option value="DANO">Producto dañado (resta)</option>
+          <option value="VENCIMIENTO">Producto vencido (resta)</option>
+          <option value="PERDIDA">Pérdida o robo (resta)</option>
+          <option value="CONTEO_FISICO">Corrección por conteo físico (suma o resta)</option>
+        </select>
       </div>
+      <div class="form-row">
+        <input id="ps-motivo" placeholder="Observación del ajuste (mínimo 5 caracteres)" minlength="5" maxlength="255" style="flex:3" />
+      </div>
+      <p class="nota">Cada ajuste queda en el historial con quién lo hizo. Las salidas y los ajustes grandes además generan una alerta en el log de auditoría.</p>
       <button class="btn-warning" onclick="ajustarStock()">Ajustar stock</button>
       <div id="msg-ps" class="msg"></div>
     </div>
@@ -373,6 +385,7 @@
         <select id="cn-tipo" style="flex:0 0 120px;min-width:100px" onchange="ajustarTipoCliente('cn')">
           <option value="CC">CC</option><option value="CE">CE</option><option value="TI">TI</option>
           <option value="NIT">NIT</option><option value="PP">PP</option>
+          <option value="PPT" title="Permiso por Protección Temporal">PPT</option>
         </select>
         <input id="cn-doc" placeholder="Número de documento" maxlength="20" />
       </div>
@@ -381,8 +394,8 @@
         <input id="cn-apellido" placeholder="Apellido" maxlength="100" />
       </div>
       <div class="form-row">
-        <input id="cn-email" placeholder="Correo electrónico (opcional)" type="email" maxlength="150" />
-        <input id="cn-tel" placeholder="Teléfono (opcional)" maxlength="20" />
+        <input id="cn-email" placeholder="Correo electrónico" required type="email" maxlength="150" />
+        <input id="cn-tel" placeholder="Teléfono" required maxlength="20" />
         <input id="cn-dir" placeholder="Dirección (opcional)" maxlength="255" />
       </div>
       <button class="btn-primary" onclick="crearCliente()">Crear Cliente</button>
@@ -398,6 +411,7 @@
         <select id="cu-tipo" style="flex:0 0 120px;min-width:100px" onchange="ajustarTipoCliente('cu')">
           <option value="CC">CC</option><option value="CE">CE</option><option value="TI">TI</option>
           <option value="NIT">NIT</option><option value="PP">PP</option>
+          <option value="PPT" title="Permiso por Protección Temporal">PPT</option>
         </select>
       </div>
       <div class="form-row">
@@ -405,8 +419,8 @@
         <input id="cu-apellido" placeholder="Apellido" maxlength="100" />
       </div>
       <div class="form-row">
-        <input id="cu-email" placeholder="Correo electrónico (opcional)" type="email" maxlength="150" />
-        <input id="cu-tel" placeholder="Teléfono (opcional)" maxlength="20" />
+        <input id="cu-email" placeholder="Correo electrónico" required type="email" maxlength="150" />
+        <input id="cu-tel" placeholder="Teléfono" required maxlength="20" />
         <input id="cu-dir" placeholder="Dirección (opcional)" maxlength="255" />
       </div>
       <button class="btn-warning" onclick="actualizarCliente()">Actualizar</button>
@@ -1213,13 +1227,19 @@
     const codigo = valorDe('ps-codigo');
     const cantidadTexto = valorDe('ps-cantidad');
     const motivo = valorDe('ps-motivo');
+    const tipoMotivo = valorDe('ps-tipo');
     if (!codigo) { mostrar('msg-ps', false, 'Indique el código del producto'); return; }
     const cantidad = Number(cantidadTexto);
     if (cantidadTexto === '' || !Number.isInteger(cantidad) || cantidad === 0) {
       mostrar('msg-ps', false, 'Indique un ajuste entero distinto de cero (por ejemplo 10 o -3)');
       return;
     }
-    if (!motivo) { mostrar('msg-ps', false, 'Indique el motivo del ajuste'); return; }
+    if (!tipoMotivo) { mostrar('msg-ps', false, 'Elija el tipo de motivo del ajuste'); return; }
+    const sumaSolo = ['INGRESO_COMPRA', 'DEVOLUCION_CLIENTE'].includes(tipoMotivo);
+    const restaSolo = ['DANO', 'VENCIMIENTO', 'PERDIDA'].includes(tipoMotivo);
+    if (sumaSolo && cantidad < 0) { mostrar('msg-ps', false, 'Ese motivo solo sirve para sumar stock (cantidad positiva)'); return; }
+    if (restaSolo && cantidad > 0) { mostrar('msg-ps', false, 'Ese motivo solo sirve para restar stock (cantidad negativa)'); return; }
+    if (motivo.length < 5) { mostrar('msg-ps', false, 'Escriba una observación de al menos 5 caracteres'); return; }
 
     const actual = await llamar('GET', '/api/productos/' + encodeURIComponent(codigo) + '/stock');
     if (!actual.ok) { mostrar('msg-ps', false, detalle(actual, 'No existe un producto con ese código')); return; }
@@ -1234,16 +1254,18 @@
       'Stock actual: ' + actual.datos.stock,
       'Ajuste: ' + (cantidad > 0 ? '+' : '') + cantidad,
       'Stock nuevo: ' + nuevoStock,
-      'Motivo: ' + motivo
+      'Tipo de motivo: ' + document.getElementById('ps-tipo').selectedOptions[0].textContent,
+      'Observación: ' + motivo
     ], 'Ajustar', 'btn-warning');
     if (!acepto) return;
 
-    const r = await llamar('POST', '/api/productos/' + encodeURIComponent(codigo) + '/ajustes', { cantidad, motivo });
+    const r = await llamar('POST', '/api/productos/' + encodeURIComponent(codigo) + '/ajustes', { cantidad, tipoMotivo, motivo });
     if (r.ok) {
       const s = r.datos;
       mostrar('msg-ps', !s.alerta, `Stock actualizado: ${s.stock}` + (s.alerta ? ' (ALERTA: igual o menor al mínimo de ' + s.stockMinimo + ')' : ''));
       document.getElementById('ps-cantidad').value = '';
       document.getElementById('ps-motivo').value = '';
+      document.getElementById('ps-tipo').value = '';
       cargarProductos();
     } else {
       mostrar('msg-ps', false, detalle(r, 'Error al ajustar el stock'));
@@ -1300,6 +1322,8 @@
 
   // RF-020
   async function crearCliente() {
+    if (!valorDe('cn-email')) { mostrar('msg-cn', false, 'El correo electrónico es obligatorio'); return; }
+    if (!valorDe('cn-tel')) { mostrar('msg-cn', false, 'El teléfono es obligatorio'); return; }
     const r = await llamar('POST', '/api/clientes', {
       tipoDocumento: valorDe('cn-tipo'),
       numeroDocumento: valorDe('cn-doc'),
@@ -1335,6 +1359,8 @@
   async function actualizarCliente() {
     const documento = valorDe('cu-doc');
     if (!documento) { mostrar('msg-cu', false, 'Indique el documento del cliente'); return; }
+    if (!valorDe('cu-email')) { mostrar('msg-cu', false, 'El correo electrónico es obligatorio'); return; }
+    if (!valorDe('cu-tel')) { mostrar('msg-cu', false, 'El teléfono es obligatorio'); return; }
     const actual = await obtenerCliente(documento);
     if (!actual) { mostrar('msg-cu', false, 'No existe un cliente con ese documento'); return; }
 

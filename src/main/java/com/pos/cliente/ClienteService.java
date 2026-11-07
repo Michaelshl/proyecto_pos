@@ -36,8 +36,8 @@ public class ClienteService {
         cliente.setTipoDocumento(request.getTipoDocumento());
         cliente.setNombre(request.getNombre().trim());
         cliente.setApellido(apellidoSegunTipo(request.getTipoDocumento(), request.getApellido()));
-        cliente.setEmail(vacioANulo(request.getEmail()));
-        cliente.setTelefono(vacioANulo(request.getTelefono()));
+        cliente.setEmail(request.getEmail().trim());
+        cliente.setTelefono(request.getTelefono().trim());
         cliente.setDireccion(vacioANulo(request.getDireccion()));
         clienteRepository.save(cliente);
         Auditoria.accion("Cliente creado", "documento " + cliente.getNumeroDocumento());
@@ -50,8 +50,8 @@ public class ClienteService {
         cliente.setTipoDocumento(request.getTipoDocumento());
         cliente.setNombre(request.getNombre().trim());
         cliente.setApellido(apellidoSegunTipo(request.getTipoDocumento(), request.getApellido()));
-        cliente.setEmail(vacioANulo(request.getEmail()));
-        cliente.setTelefono(vacioANulo(request.getTelefono()));
+        cliente.setEmail(request.getEmail().trim());
+        cliente.setTelefono(request.getTelefono().trim());
         cliente.setDireccion(vacioANulo(request.getDireccion()));
         clienteRepository.save(cliente);
         Auditoria.accion("Cliente actualizado", "documento " + cliente.getNumeroDocumento());
@@ -80,7 +80,7 @@ public class ClienteService {
     }
 
     // Una empresa (NIT) tiene razón social y no apellido: se guarda siempre como NULL, aunque llegue algo.
-    // Una persona (CC, CE, TI, PP) debe tener apellido.
+    // Una persona (CC, CE, TI, PP, PPT) debe tener apellido.
     private static String apellidoSegunTipo(String tipoDocumento, String apellido) {
         if ("NIT".equals(tipoDocumento)) {
             return null;
@@ -92,7 +92,8 @@ public class ClienteService {
         return limpio;
     }
 
-    // Un campo opcional vacío se guarda como NULL, no como texto en blanco.
+    // La dirección es opcional: vacía se guarda como NULL, no como texto en blanco.
+    // (El correo y el teléfono son obligatorios y los valida el DTO.)
     private static String vacioANulo(String texto) {
         return texto == null || texto.isBlank() ? null : texto.trim();
     }

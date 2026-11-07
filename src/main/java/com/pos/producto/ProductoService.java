@@ -18,12 +18,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
 public class ProductoService {
 
     private static final int MAX_SUGERENCIAS = 8;
+
+    // Un ajuste es "grande" si mueve más del 20 % del stock actual o 50 unidades o más: se registra como
+    // alerta (WARN) en el log de auditoría. Toda salida de stock también deja alerta.
+    private static final int AJUSTE_GRANDE_PORCENTAJE = 20;
+    private static final int AJUSTE_GRANDE_UNIDADES = 50;
 
     private final ProductoRepository productoRepository;
     private final AjusteStockRepository ajusteStockRepository;
@@ -124,8 +130,16 @@ public class ProductoService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cantidad del ajuste no puede ser cero");
         }
 
+        MotivoAjuste tipo = MotivoAjuste.desde(request.getTipoMotivo())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "El tipo de motivo no es válido. Use: " + Arrays.toString(MotivoAjuste.values())));
+        if (!tipo.admite(request.getCantidad())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, mensajeSentido(tipo));
+        }
+
         Producto producto = obtener(codigo);
-        int nuevoStock = producto.getStock() + request.getCantidad();
+        int stockAnterior = producto.getStock();
+        int nuevoStock = stockAnterior + request.getCantidad();
         if (nuevoStock < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "El ajuste dejaría el stock en negativo (stock actual: " + producto.getStock() + ")");
@@ -138,14 +152,37 @@ public class ProductoService {
                 ajusteStockRepository.ultimoConsecutivo(producto.getCodigo()) + 1));
         ajuste.setUsuarioCedula(cedulaUsuario);
         ajuste.setCantidad(request.getCantidad());
+        ajuste.setTipoMotivo(tipo.name());
         ajuste.setMotivo(request.getMotivo().trim());
         ajuste.setFecha(LocalDateTime.now());
         ajusteStockRepository.save(ajuste);
-        Auditoria.accion("Ajuste de stock", "producto " + producto.getCodigo() + ", cantidad " + request.getCantidad()
-                + ", stock nuevo " + nuevoStock + ", motivo: " + ajuste.getMotivo());
+
+        String detalle = "producto " + producto.getCodigo() + ", cantidad " + request.getCantidad()
+                + ", stock nuevo " + nuevoStock + ", tipo " + tipo.name() + ", motivo: " + ajuste.getMotivo();
+        Auditoria.accion("Ajuste de stock", detalle);
+        // Las salidas y los ajustes grandes son lo que más conviene revisar: quedan también como alerta.
+        if (request.getCantidad() < 0 || esAjusteGrande(stockAnterior, request.getCantidad())) {
+            Auditoria.alerta("ALERTA ajuste de stock " + (request.getCantidad() < 0 ? "(salida)" : "(grande)"),
+                    "usuario " + Auditoria.limpiar(cedulaUsuario) + ", " + detalle);
+        }
 
         return new StockResponse(producto.getCodigo(), producto.getNombre(), nuevoStock,
                 producto.getStockMinimo(), nuevoStock <= producto.getStockMinimo());
+    }
+
+    private static String mensajeSentido(MotivoAjuste tipo) {
+        return switch (tipo.getSentido()) {
+            case ENTRADA -> "El motivo «" + tipo.getDescripcion() + "» solo sirve para sumar stock (cantidad positiva)";
+            case SALIDA -> "El motivo «" + tipo.getDescripcion() + "» solo sirve para restar stock (cantidad negativa)";
+            case AMBOS -> "La cantidad del ajuste no puede ser cero";
+        };
+    }
+
+    // Visible en el paquete para poder probarlo directamente.
+    static boolean esAjusteGrande(int stockAnterior, int cantidad) {
+        int magnitud = Math.abs(cantidad);
+        return magnitud >= AJUSTE_GRANDE_UNIDADES
+                || (stockAnterior > 0 && magnitud * 100 > stockAnterior * AJUSTE_GRANDE_PORCENTAJE);
     }
 
     // Lista corta para el autocompletado. Con menos de 2 caracteres no consulta.
