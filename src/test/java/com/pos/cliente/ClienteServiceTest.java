@@ -94,17 +94,17 @@ class ClienteServiceTest {
     }
 
     @Test
-    void crearGuardaLosOpcionalesVaciosComoNulos() {
+    void crearGuardaLaDireccionVaciaComoNulaYRecortaCorreoYTelefono() {
         when(clienteRepository.existsById("1001")).thenReturn(false);
         ClienteRequest r = solicitud("1001");
-        r.setEmail("  ");
-        r.setTelefono("");
-        r.setDireccion(null);
+        r.setEmail("  ana@correo.com ");
+        r.setTelefono(" 3001234567 ");
+        r.setDireccion("  ");
 
         ClienteResponse res = service.crear(r);
 
-        assertNull(res.getEmail());
-        assertNull(res.getTelefono());
+        assertEquals("ana@correo.com", res.getEmail());
+        assertEquals("3001234567", res.getTelefono());
         assertNull(res.getDireccion());
     }
 

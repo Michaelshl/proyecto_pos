@@ -251,9 +251,10 @@ class ProductoServiceTest {
 
     // ---- RF-019 ajustar stock ----
 
-    private AjusteStockRequest ajuste(int cantidad, String motivo) {
+    private AjusteStockRequest ajuste(int cantidad, String tipoMotivo, String motivo) {
         AjusteStockRequest r = new AjusteStockRequest();
         r.setCantidad(cantidad);
+        r.setTipoMotivo(tipoMotivo);
         r.setMotivo(motivo);
         return r;
     }
@@ -263,7 +264,7 @@ class ProductoServiceTest {
         when(productoRepository.findById("P001")).thenReturn(Optional.of(producto("P001", 10, 5, true)));
         when(ajusteStockRepository.ultimoConsecutivo("P001")).thenReturn(3);
 
-        StockResponse r = service.ajustarStock("P001", ajuste(15, "  Compra al proveedor  "), "1001");
+        StockResponse r = service.ajustarStock("P001", ajuste(15, "INGRESO_COMPRA", "  Compra al proveedor  "), "1001");
 
         assertEquals(25, r.getStock());
         ArgumentCaptor<AjusteStock> captor = ArgumentCaptor.forClass(AjusteStock.class);
@@ -273,6 +274,7 @@ class ProductoServiceTest {
         assertEquals(4, guardado.getId().getConsecutivo());
         assertEquals("1001", guardado.getUsuarioCedula());
         assertEquals(15, guardado.getCantidad());
+        assertEquals("INGRESO_COMPRA", guardado.getTipoMotivo());
         assertEquals("Compra al proveedor", guardado.getMotivo());
         assertNotNull(guardado.getFecha());
     }
@@ -282,7 +284,7 @@ class ProductoServiceTest {
         when(productoRepository.findById("P001")).thenReturn(Optional.of(producto("P001", 10, 5, true)));
         when(ajusteStockRepository.ultimoConsecutivo("P001")).thenReturn(0);
 
-        StockResponse r = service.ajustarStock("P001", ajuste(-5, "Producto vencido"), "1001");
+        StockResponse r = service.ajustarStock("P001", ajuste(-5, "VENCIMIENTO", "Producto vencido"), "1001");
 
         assertEquals(5, r.getStock());
         assertTrue(r.isAlerta());
@@ -294,7 +296,7 @@ class ProductoServiceTest {
         when(productoRepository.findById("P001")).thenReturn(Optional.of(producto("P001", 3, 5, true)));
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
-                () -> service.ajustarStock("P001", ajuste(-4, "Merma"), "1001"));
+                () -> service.ajustarStock("P001", ajuste(-4, "PERDIDA", "Merma"), "1001"));
 
         assertEquals(400, estado(e));
         verify(productoRepository, never()).save(any());
@@ -306,13 +308,13 @@ class ProductoServiceTest {
         when(productoRepository.findById("P001")).thenReturn(Optional.of(producto("P001", 3, 0, true)));
         when(ajusteStockRepository.ultimoConsecutivo("P001")).thenReturn(0);
 
-        assertEquals(0, service.ajustarStock("P001", ajuste(-3, "Inventario"), "1001").getStock());
+        assertEquals(0, service.ajustarStock("P001", ajuste(-3, "CONTEO_FISICO", "Inventario"), "1001").getStock());
     }
 
     @Test
     void ajustarConCantidadCeroDa400() {
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
-                () -> service.ajustarStock("P001", ajuste(0, "Nada"), "1001"));
+                () -> service.ajustarStock("P001", ajuste(0, "CONTEO_FISICO", "Nada"), "1001"));
 
         assertEquals(400, estado(e));
         verify(productoRepository, never()).findById(anyString());
@@ -323,9 +325,66 @@ class ProductoServiceTest {
         when(productoRepository.findById("X")).thenReturn(Optional.empty());
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
-                () -> service.ajustarStock("X", ajuste(1, "Alta"), "1001"));
+                () -> service.ajustarStock("X", ajuste(1, "INGRESO_COMPRA", "Alta nueva"), "1001"));
 
         assertEquals(404, estado(e));
+    }
+
+    // ---- RF-019: el ajuste no es "escribir el número que se quiera" (observación del profesor) ----
+
+    @Test
+    void unaSalidaNoPuedeDisfrazarseDeIngreso() {
+        // El caso del televisor: sacar unidades y declararlas como "ingreso por compra".
+        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+                () -> service.ajustarStock("P001", ajuste(-1, "INGRESO_COMPRA", "Compra de televisor"), "1001"));
+
+        assertEquals(400, estado(e));
+        verify(productoRepository, never()).save(any());
+        verify(ajusteStockRepository, never()).save(any());
+    }
+
+    @Test
+    void unMotivoDePerdidaNoSirveParaSumarStock() {
+        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+                () -> service.ajustarStock("P001", ajuste(5, "DANO", "Se dañó en bodega"), "1001"));
+
+        assertEquals(400, estado(e));
+        verify(ajusteStockRepository, never()).save(any());
+    }
+
+    @Test
+    void unTipoDeMotivoInventadoDa400() {
+        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+                () -> service.ajustarStock("P001", ajuste(5, "REGALO", "Porque sí"), "1001"));
+
+        assertEquals(400, estado(e));
+        verify(ajusteStockRepository, never()).save(any());
+    }
+
+    @Test
+    void sinTipoDeMotivoDa400() {
+        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+                () -> service.ajustarStock("P001", ajuste(5, null, "Sin tipo"), "1001"));
+
+        assertEquals(400, estado(e));
+    }
+
+    @Test
+    void elConteoFisicoAdmiteSumarYRestar() {
+        when(productoRepository.findById("P001")).thenReturn(Optional.of(producto("P001", 100, 5, true)));
+        when(ajusteStockRepository.ultimoConsecutivo("P001")).thenReturn(0);
+
+        assertEquals(98, service.ajustarStock("P001", ajuste(-2, "CONTEO_FISICO", "Faltaban dos"), "1001").getStock());
+        assertEquals(100, service.ajustarStock("P001", ajuste(2, "CONTEO_FISICO", "Aparecieron dos"), "1001").getStock());
+    }
+
+    @Test
+    void esAjusteGrandeCuandoPasaDelVeintePorCientoOLas50Unidades() {
+        assertTrue(ProductoService.esAjusteGrande(10, 3));      // 30 % del stock
+        assertFalse(ProductoService.esAjusteGrande(100, 20));   // exactamente 20 %: no es "más del 20 %"
+        assertTrue(ProductoService.esAjusteGrande(1000, -50));  // 50 unidades aunque sea 5 %
+        assertFalse(ProductoService.esAjusteGrande(1000, 49));
+        assertFalse(ProductoService.esAjusteGrande(0, 5));      // sin stock previo no hay porcentaje
     }
 
     // ---- autocompletado ----

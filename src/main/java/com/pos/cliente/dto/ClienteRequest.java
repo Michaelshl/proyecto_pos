@@ -10,7 +10,7 @@ import lombok.Data;
 public class ClienteRequest {
 
     @NotBlank(message = "El tipo de documento es obligatorio")
-    @Pattern(regexp = "CC|CE|TI|NIT|PP", message = "El tipo de documento debe ser CC, CE, TI, NIT o PP")
+    @Pattern(regexp = "CC|CE|TI|NIT|PP|PPT", message = "El tipo de documento debe ser CC, CE, TI, NIT, PP o PPT")
     private String tipoDocumento;
 
     // Letras, dígitos y guion (un NIT lleva el dígito de verificación: 900123456-7).
@@ -29,11 +29,13 @@ public class ClienteRequest {
     @Size(max = 100, message = "El apellido no puede superar 100 caracteres")
     private String apellido;
 
+    @NotBlank(message = "El correo electrónico es obligatorio")
     @Email(message = "El correo electrónico no tiene un formato válido")
     @Size(max = 150, message = "El correo electrónico no puede superar 150 caracteres")
     private String email;
 
-    @Pattern(regexp = "|[0-9+()\\- ]{7,20}",
+    @NotBlank(message = "El teléfono es obligatorio")
+    @Pattern(regexp = "[0-9+()\\- ]{7,20}",
             message = "El teléfono debe tener entre 7 y 20 caracteres (números, espacios, +, - y paréntesis)")
     private String telefono;
 

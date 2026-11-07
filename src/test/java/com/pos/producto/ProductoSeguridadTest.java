@@ -105,6 +105,44 @@ class ProductoSeguridadTest {
                 .andExpect(status().isCreated());
     }
 
+    // Observación del profesor: el administrador no ajusta el stock "a su gusto". Cada ajuste lleva un tipo de
+    // motivo de una lista cerrada y el tipo tiene que ser coherente con el signo de la cantidad.
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void elAjusteExigeUnTipoDeMotivoCoherenteConLaCantidad() throws Exception {
+        mockMvc.perform(post("/api/categorias").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nombre\":\"CategoriaSku\",\"descripcion\":\"x\"}"));
+        mockMvc.perform(post("/api/productos").contentType(MediaType.APPLICATION_JSON).content(producto("0009001")))
+                .andExpect(status().isCreated());
+
+        // El televisor: sacar unidades declarándolas como ingreso por compra.
+        mockMvc.perform(post("/api/productos/0009001/ajustes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":-1,\"tipoMotivo\":\"INGRESO_COMPRA\",\"motivo\":\"Compra de televisor\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("solo sirve para sumar")));
+        // Sin tipo de motivo, o con uno inventado.
+        mockMvc.perform(post("/api/productos/0009001/ajustes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":1,\"motivo\":\"Sin tipo de motivo\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/productos/0009001/ajustes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":1,\"tipoMotivo\":\"REGALO\",\"motivo\":\"Porque sí\"}"))
+                .andExpect(status().isBadRequest());
+        // Observación demasiado corta.
+        mockMvc.perform(post("/api/productos/0009001/ajustes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":1,\"tipoMotivo\":\"INGRESO_COMPRA\",\"motivo\":\"ok\"}"))
+                .andExpect(status().isBadRequest());
+
+        // Coherentes: una entrada por compra y una salida por daño.
+        mockMvc.perform(post("/api/productos/0009001/ajustes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":3,\"tipoMotivo\":\"INGRESO_COMPRA\",\"motivo\":\"Compra al proveedor\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stock").value(8));
+        mockMvc.perform(post("/api/productos/0009001/ajustes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":-2,\"tipoMotivo\":\"DANO\",\"motivo\":\"Se cayó de la estantería\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stock").value(6));
+    }
+
     @Test
     @WithMockUser(roles = "ADMIN")
     void ajusteConJsonInvalidoDa400() throws Exception {

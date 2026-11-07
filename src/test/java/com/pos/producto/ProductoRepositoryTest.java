@@ -63,8 +63,31 @@ class ProductoRepositoryTest {
     // ---- filtrar (RF-015, RF-016) ----
 
     @Test
-    void sinFiltrosDevuelveTodosOrdenadosPorNombre() {
-        assertEquals(List.of("P001", "P002", "L100"), codigos(productos.filtrar(null, null, null)));
+    void sinFiltrosDevuelveLosActivosPrimeroYLosInactivosAlFinal() {
+        // Con el mismo stock, desempata el nombre: Coca-Cola, Leche entera y, de último, el inactivo.
+        assertEquals(List.of("P001", "L100", "P002"), codigos(productos.filtrar(null, null, null)));
+    }
+
+    // Pedido del usuario: en cada categoría aparece primero el producto con menos stock; los inactivos van al
+    // final y conservan entre ellos el orden de su último stock.
+    @Test
+    void ordenaPorMenorStockConLosInactivosAlFinal() {
+        productos.save(conStock(producto("B10", "Agua", "Bebidas", true), 30));
+        productos.save(conStock(producto("B11", "Gaseosa", "Bebidas", true), 3));
+        productos.save(conStock(producto("B12", "Te frio", "Bebidas", true), 12));
+        productos.save(conStock(producto("B13", "Cerveza", "Bebidas", false), 50));
+        productos.save(conStock(producto("B14", "Malta", "Bebidas", false), 1));
+        productos.flush();
+
+        // P001 (stock 10) y P002 (inactivo, stock 10) vienen de los datos de cada prueba.
+        assertEquals(List.of("B11", "P001", "B12", "B10", "B14", "P002", "B13"),
+                codigos(productos.filtrar("Bebidas", null, null)));
+        assertEquals(List.of("B14", "P002", "B13"), codigos(productos.filtrar("Bebidas", false, null)));
+    }
+
+    private Producto conStock(Producto p, int stock) {
+        p.setStock(stock);
+        return p;
     }
 
     @Test
@@ -113,6 +136,7 @@ class ProductoRepositoryTest {
         a.setId(new AjusteStockId(codigo, consecutivo));
         a.setUsuarioCedula("1001");
         a.setCantidad(5);
+        a.setTipoMotivo("INGRESO_COMPRA");
         a.setMotivo("Compra");
         a.setFecha(LocalDateTime.now());
         return a;

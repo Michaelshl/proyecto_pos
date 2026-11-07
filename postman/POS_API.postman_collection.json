@@ -310,7 +310,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/productos/100001/ajustes",
-            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 10,\n  \"motivo\": \"Compra al proveedor\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 10,\n  \"tipoMotivo\": \"INGRESO_COMPRA\",\n  \"motivo\": \"Compra al proveedor\"\n}" }
           }
         },
         {
@@ -322,7 +322,19 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/productos/100001/ajustes",
-            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": -1000000,\n  \"motivo\": \"Prueba\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": -1000000,\n  \"tipoMotivo\": \"PERDIDA\",\n  \"motivo\": \"Prueba de stock negativo\"\n}" }
+          }
+        },
+        {
+          "name": "Ajustar stock: salida disfrazada de ingreso -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400: el motivo no corresponde a una salida', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().message).to.include('solo sirve para sumar'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/productos/100001/ajustes",
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": -1,\n  \"tipoMotivo\": \"INGRESO_COMPRA\",\n  \"motivo\": \"Compra de televisor\"\n}" }
           }
         },
         {
@@ -334,7 +346,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/productos/100001/ajustes",
-            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 5\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 5,\n  \"tipoMotivo\": \"INGRESO_COMPRA\"\n}" }
           }
         },
         {
@@ -399,7 +411,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/clientes",
-            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"numeroDocumento\": \"80010001\",\n  \"nombre\": \"Otra\",\n  \"apellido\": \"Persona\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"numeroDocumento\": \"80010001\",\n  \"nombre\": \"Otra\",\n  \"apellido\": \"Persona\",\n  \"email\": \"ana@correo.com\",\n  \"telefono\": \"3001234567\"\n}" }
           }
         },
         {
@@ -411,7 +423,43 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/clientes",
-            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"NIT\",\n  \"numeroDocumento\": \"900800800-1\",\n  \"nombre\": \"Distribuciones El Sol S.A.S.\",\n  \"email\": \"contacto@elsol.test\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"NIT\",\n  \"numeroDocumento\": \"900800800-1\",\n  \"nombre\": \"Distribuciones El Sol S.A.S.\",\n  \"email\": \"contacto@elsol.test\",\n  \"telefono\": \"6025550123\"\n}" }
+          }
+        },
+        {
+          "name": "Crear cliente con tipo PPT (RF-020)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 (o 400 si ya existe) y tipo PPT', () => { pm.expect([201, 400]).to.include(pm.response.code); if (pm.response.code === 201) { pm.expect(pm.response.json().tipoDocumento).to.eql('PPT'); } });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"PPT\",\n  \"numeroDocumento\": \"80010020\",\n  \"nombre\": \"Carlos\",\n  \"apellido\": \"Rojas\",\n  \"email\": \"carlos@correo.com\",\n  \"telefono\": \"3201112222\"\n}" }
+          }
+        },
+        {
+          "name": "Crear cliente sin correo -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400: el correo es obligatorio', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().message).to.include('correo'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"numeroDocumento\": \"80010021\",\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Lopez\",\n  \"telefono\": \"3001234567\"\n}" }
+          }
+        },
+        {
+          "name": "Crear cliente sin teléfono -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400: el teléfono es obligatorio', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().message).to.include('teléfono'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"numeroDocumento\": \"80010022\",\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Lopez\",\n  \"email\": \"ana@correo.com\"\n}" }
           }
         },
         {
@@ -423,7 +471,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/clientes",
-            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"numeroDocumento\": \"80010004\",\n  \"nombre\": \"Ana\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"numeroDocumento\": \"80010004\",\n  \"nombre\": \"Ana\",\n  \"email\": \"ana@correo.com\",\n  \"telefono\": \"3001234567\"\n}" }
           }
         },
         {
@@ -435,7 +483,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/clientes",
-            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"XX\",\n  \"numeroDocumento\": \"80010002\",\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Lopez\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"XX\",\n  \"numeroDocumento\": \"80010002\",\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Lopez\",\n  \"email\": \"ana@correo.com\",\n  \"telefono\": \"3001234567\"\n}" }
           }
         },
         {
@@ -471,7 +519,7 @@
             "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/clientes/NO-EXISTE",
-            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"nombre\": \"x\",\n  \"apellido\": \"y\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"nombre\": \"x\",\n  \"apellido\": \"y\",\n  \"email\": \"ana@correo.com\",\n  \"telefono\": \"3001234567\"\n}" }
           }
         },
         {
@@ -616,7 +664,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/clientes",
-            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CE\",\n  \"numeroDocumento\": \"80010010\",\n  \"nombre\": \"Luis\",\n  \"apellido\": \"Perez\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CE\",\n  \"numeroDocumento\": \"80010010\",\n  \"nombre\": \"Luis\",\n  \"apellido\": \"Perez\",\n  \"email\": \"luis@correo.com\",\n  \"telefono\": \"3150001111\"\n}" }
           }
         },
         {
@@ -642,7 +690,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/productos/100001/ajustes",
-            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 5,\n  \"motivo\": \"x\"\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 5,\n  \"tipoMotivo\": \"INGRESO_COMPRA\",\n  \"motivo\": \"Compra al proveedor\"\n}" }
           }
         }
       ]

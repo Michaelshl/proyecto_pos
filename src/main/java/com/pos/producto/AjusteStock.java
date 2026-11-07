@@ -20,6 +20,11 @@ public class AjusteStock {
     // Positivo suma al stock, negativo resta.
     private Integer cantidad;
 
+    // Nombre de un MotivoAjuste (o SIN_CLASIFICAR en los ajustes anteriores a la V4).
+    @Column(name = "tipo_motivo", length = 30, nullable = false)
+    private String tipoMotivo;
+
+    // Observación escrita por quien ajusta: aclara el tipo de motivo.
     @Column(length = 255, nullable = false)
     private String motivo;
 

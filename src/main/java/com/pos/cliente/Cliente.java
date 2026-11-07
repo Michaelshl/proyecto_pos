@@ -14,7 +14,7 @@ public class Cliente {
     @Column(name = "numero_documento", length = 20)
     private String numeroDocumento;
 
-    // CC, CE, TI, NIT o PP. Es una columna normal: dos tipos distintos con el mismo número son el mismo cliente.
+    // CC, CE, TI, NIT, PP o PPT (permiso por protección temporal). Es una columna normal: dos tipos distintos con el mismo número son el mismo cliente.
     @Column(name = "tipo_documento", length = 20, nullable = false)
     private String tipoDocumento;
 
@@ -26,6 +26,8 @@ public class Cliente {
     @Column(length = 100)
     private String apellido;
 
+    // Obligatorios al crear y al actualizar (los valida el DTO). La columna admite NULL solo por los clientes
+    // que se crearon antes de que fueran obligatorios; a esos se les exige completarlos al actualizarlos.
     @Column(length = 150)
     private String email;
 
