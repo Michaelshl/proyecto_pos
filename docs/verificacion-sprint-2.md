@@ -57,14 +57,14 @@ Cerrar sesión y entrar como cajero.
 | # | Acción | Resultado esperado |
 |---|---|---|
 | 1 | Mirar las pestañas | Solo Categorías, Productos y Clientes (no Usuarios ni Roles) |
-| 2 | Productos | Solo las subpestañas Listado y Consultar; la tabla no tiene columna de acciones |
-| 3 | Listado y Consultar | Funcionan igual que para el administrador (incluida la insignia "Stock bajo") |
+| 2 | Productos | Solo las subpestañas Listado y Consultar; la tabla no tiene columnas de estado ni de acciones, y no hay selector de estado (solo categoría y nombre) |
+| 3 | Listado y Consultar | Solo aparecen los productos **activos** (un inactivo no se lista, no sale en el autocompletado y al consultarlo por código responde "Producto no encontrado"); incluyen la insignia "Stock bajo" |
 
 La restricción real la hace el servidor, no la pantalla: con el cajero, las rutas de crear, actualizar, inactivar, stock y ajustes responden 403 (lo comprueba la colección de Postman y las pruebas automáticas).
 
 ## 3. Clientes (cajero o administrador)
 
-Los requisitos del Sprint 2 son solo crear y actualizar (RF-020, RF-021). La pestaña **Consultar** es un apoyo para poder ver y elegir a un cliente al actualizarlo; el RF-022 (consultar por documento o nombre) y el RF-023 (listar clientes) están planeados para el Sprint 3 y todavía no existe el listado.
+Los requisitos del Sprint 2 son solo crear y actualizar (RF-020, RF-021). La pestaña **Consultar** es un apoyo para poder ver y elegir a un cliente al actualizarlo; el RF-022 (consultar por documento o nombre) y el RF-023 (listar clientes) son del Sprint 3 y se verifican en `docs/verificacion-sprint-3.md`.
 
 | # | Acción | Resultado esperado |
 |---|---|---|
@@ -86,7 +86,7 @@ Los requisitos del Sprint 2 son solo crear y actualizar (RF-020, RF-021). La pes
 
 1. Importar `postman/POS_API.postman_collection.json`.
 2. Rellenar las variables de la colección: `baseUrl` (por ejemplo `http://localhost:8081`), `adminCedula` y `adminPassword`.
-3. Ejecutar la colección completa (Run). Resultado esperado: **63 requests y 63 pruebas, todas en verde** (el 2026-10-11 la colección tenía 56 y pasó completa; las 7 nuevas —SKU, NIT, tipo PPT, correo y teléfono obligatorios y ajuste incoherente— aún no se han ejecutado en Postman). **No ejecutarla contra `pos_db`**: crea productos y clientes de prueba (e inactiva uno); usar una base aparte. Se puede ejecutar varias veces: los casos de "crear" aceptan 201 o 400 si ya existe.
+3. Ejecutar la colección completa (Run). Resultado esperado: **69 requests y 69 pruebas, todas en verde** (el 2026-10-11 la colección tenía 56 y pasó completa; las 7 nuevas —SKU, NIT, tipo PPT, correo y teléfono obligatorios y ajuste incoherente— aún no se han ejecutado en Postman). **No ejecutarla contra `pos_db`**: crea productos y clientes de prueba (e inactiva uno); usar una base aparte. Se puede ejecutar varias veces: los casos de "crear" aceptan 201 o 400 si ya existe.
 
 Las carpetas nuevas son **Productos** (16), **Clientes** (10) y 7 casos nuevos dentro de **Control por rol (Cajero)**.
 

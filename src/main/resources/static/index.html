@@ -57,6 +57,14 @@
     .login-box { max-width: 380px; margin: 80px auto; }
     .login-box input { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
     .login-box button { width: 100%; }
+    /* Campo de contraseña con el ojo para mostrarla u ocultarla */
+    .campo-pass { position: relative; display: flex; flex: 1; min-width: 140px; }
+    .campo-pass input { width: 100%; padding-right: 44px; }
+    .login-box .campo-pass { margin-bottom: 12px; }
+    .login-box .campo-pass input { margin-bottom: 0; }
+    .campo-pass .ojo { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: auto;
+      padding: 6px 8px; background: transparent; color: #555; line-height: 0; font-weight: normal; }
+    .login-box .campo-pass .ojo { width: auto; }
     .btn-salir { background: transparent; color: white; border: 1px solid white; padding: 6px 14px; margin-left: 12px; }
     .msg { padding: 10px 16px; border-radius: 6px; margin-top: 12px; font-size: 14px; display: none; }
     .msg-ok  { background: #d4edda; color: #155724; }
@@ -253,16 +261,16 @@
       <h2>Productos <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarProductos()">Buscar</button></h2>
       <div class="form-row">
         <select id="pl-categoria"><option value="">Todas las categorías</option></select>
-        <select id="pl-estado">
+        <select id="pl-estado" class="solo-admin">
           <option value="">Todos los estados</option>
           <option value="true">Activos</option>
           <option value="false">Inactivos</option>
         </select>
-        <input id="pl-nombre" placeholder="Nombre contiene..." />
+        <input id="pl-nombre" placeholder="Código o nombre contiene..." />
       </div>
       <div id="msg-pl" class="msg"></div>
       <table style="margin-top:16px">
-        <thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th class="solo-admin">Acciones</th></tr></thead>
+        <thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th class="solo-admin">Estado</th><th class="solo-admin">Acciones</th></tr></thead>
         <tbody id="tabla-productos"><tr><td colspan="7" style="text-align:center;color:#999">Cargando...</td></tr></tbody>
       </table>
     </div>
@@ -359,15 +367,30 @@
     </div>
   </section>
 
-  <!-- PESTAÑA CLIENTES (RF-020 y RF-021): los usan el cajero y el administrador -->
+  <!-- PESTAÑA CLIENTES (RF-020 a RF-023): los usan el cajero y el administrador -->
   <section id="p-clientes" class="panel">
     <nav class="subtabs">
+      <button class="subtab" id="st-cli-listado" onclick="abrirSub('cli-listado','clientes')">Listado</button>
       <button class="subtab" id="st-cli-consultar" onclick="abrirSub('cli-consultar','clientes')">Consultar</button>
       <button class="subtab" id="st-cli-crear" onclick="abrirSub('cli-crear','clientes')">Crear</button>
       <button class="subtab" id="st-cli-actualizar" onclick="abrirSub('cli-actualizar','clientes')">Actualizar</button>
     </nav>
 
   <!-- CONSULTAR CLIENTE -->
+    <!-- LISTADO DE CLIENTES (RF-023) y búsqueda por documento o nombre (RF-022) -->
+    <div class="card subpanel" id="s-cli-listado">
+      <h2>Clientes <button class="btn-primary" style="float:right;font-size:12px" onclick="cargarClientes()">Buscar</button></h2>
+      <div class="form-row">
+        <input id="cl-texto" placeholder="Documento, nombre o apellido (vacío = todos)" />
+      </div>
+      <div id="msg-cl" class="msg"></div>
+      <table style="margin-top:16px">
+        <thead><tr><th>Documento</th><th>Nombre / Razón social</th><th>Correo</th><th>Teléfono</th><th>Dirección</th></tr></thead>
+        <tbody id="tabla-clientes"><tr><td colspan="5" style="text-align:center;color:#999">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+
+  <!-- CONSULTAR CLIENTE (RF-022) -->
     <div class="card subpanel" id="s-cli-consultar">
       <h2>Consultar Cliente</h2>
       <div class="form-row">
@@ -424,6 +447,7 @@
         <input id="cu-dir" placeholder="Dirección (opcional)" maxlength="255" />
       </div>
       <button class="btn-warning" onclick="actualizarCliente()">Actualizar</button>
+      <button class="btn-primary" style="margin-left:8px" onclick="limpiarActualizarCliente()">Limpiar</button>
       <div id="msg-cu" class="msg"></div>
     </div>
   </section>
@@ -468,6 +492,7 @@
       token = sesion.token;
       msg.style.display = 'none';
       document.getElementById('l-password').value = '';
+      ocultarContrasenas();
       const rol = rolDelToken(token);
       // Se muestra el nombre de la persona; la cédula solo si el usuario no tiene nombre.
       document.getElementById('status').textContent = 'Conectado como ' + (sesion.nombre || cedula) + (rol ? ' (' + rol + ')' : '');
@@ -482,8 +507,9 @@
       }
       cargarCategorias();
       abrirSub('prod-listado', 'productos');
-      abrirSub('cli-consultar', 'clientes');
+      abrirSub('cli-listado', 'clientes');
       cargarProductos();
+      cargarClientes();
     } catch (e) {
       mostrar('msg-login', false, 'No se pudo conectar con el servidor');
     }
@@ -990,10 +1016,11 @@
   async function cargarProductos() {
     const tbody = document.getElementById('tabla-productos');
     const esAdmin = rolActual === 'ADMIN';
-    const columnas = esAdmin ? 7 : 6;
+    const columnas = esAdmin ? 7 : 5;
     const params = new URLSearchParams();
     if (valorDe('pl-categoria')) params.set('categoria', valorDe('pl-categoria'));
-    if (valorDe('pl-estado')) params.set('activo', valorDe('pl-estado'));
+    // Solo el administrador elige entre activos e inactivos; al cajero el servidor le muestra solo los activos.
+    if (esAdmin && valorDe('pl-estado')) params.set('activo', valorDe('pl-estado'));
     if (valorDe('pl-nombre')) params.set('nombre', valorDe('pl-nombre'));
 
     const r = await llamar('GET', '/api/productos' + (params.toString() ? '?' + params : ''));
@@ -1016,7 +1043,7 @@
         <td>${esc(p.categoria)}</td>
         <td>${dinero.format(p.precioVenta)}</td>
         <td>${p.stock}${insigniaStock(p)}</td>
-        <td>${insigniaEstado(p)}</td>
+        ${esAdmin ? `<td>${insigniaEstado(p)}</td>` : ''}
         ${esAdmin ? `<td>
           <button class="btn-warning" style="font-size:12px;padding:4px 10px" data-accion="editar" data-codigo="${escAttr(p.codigo)}">Editar</button>
           <button class="btn-primary" style="font-size:12px;padding:4px 10px;margin-left:4px" data-accion="stock" data-codigo="${escAttr(p.codigo)}">Stock</button>
@@ -1304,21 +1331,77 @@
     </table>`;
   }
 
+  // RF-023: lista de clientes con su total; el texto (documento, nombre o apellido) es opcional (RF-022).
+  async function cargarClientes() {
+    const tbody = document.getElementById('tabla-clientes');
+    const params = new URLSearchParams();
+    if (valorDe('cl-texto')) params.set('q', valorDe('cl-texto'));
+    const r = await llamar('GET', '/api/clientes' + (params.toString() ? '?' + params : ''));
+    if (!r.ok) {
+      filaVacia(tbody, 5, 'No se pudo listar');
+      mostrar('msg-cl', false, detalle(r, 'Error al listar clientes'));
+      return;
+    }
+    const clientes = r.datos.clientes;
+    if (clientes.length === 0) {
+      filaVacia(tbody, 5, 'Sin resultados');
+      mostrar('msg-cl', false, 'No hay clientes que coincidan');
+      return;
+    }
+    mostrar('msg-cl', true, r.datos.total + ' cliente(s) encontrado(s)');
+    tbody.innerHTML = clientes.map(c => `
+      <tr>
+        <td>${esc(c.tipoDocumento)} ${esc(c.numeroDocumento)}</td>
+        <td>${esc(nombreCliente(c))}</td>
+        <td>${esc(c.email) || '—'}</td>
+        <td>${esc(c.telefono) || '—'}</td>
+        <td>${esc(c.direccion) || '—'}</td>
+      </tr>`).join('');
+  }
+
+  // RF-022: primero por número de documento; si no existe, por nombre o apellido.
   async function consultarCliente() {
     const documento = valorDe('cc-doc');
     const ficha = document.getElementById('ficha-cliente');
     ficha.innerHTML = '';
-    if (!documento) { mostrar('msg-cc', false, 'Indique el documento del cliente'); return; }
+    if (!documento) { mostrar('msg-cc', false, 'Indique el documento o el nombre del cliente'); return; }
     const r = await llamar('GET', '/api/clientes/' + encodeURIComponent(documento));
     if (r.ok) {
       ocultarMsg('msg-cc');
       ficha.innerHTML = fichaClienteHtml(r.datos);
-    } else if (r.status === 404) {
-      mostrar('msg-cc', false, 'No existe un cliente con ese documento. Escriba parte del nombre para buscarlo en la lista.');
+      return;
+    }
+    if (r.status !== 404) { mostrar('msg-cc', false, detalle(r, 'Error al consultar')); return; }
+
+    const b = await llamar('GET', '/api/clientes?q=' + encodeURIComponent(documento));
+    if (!b.ok) { mostrar('msg-cc', false, detalle(b, 'Error al consultar')); return; }
+    if (b.datos.total === 0) {
+      mostrar('msg-cc', false, 'No hay ningún cliente con ese documento o nombre');
+    } else if (b.datos.total === 1) {
+      ocultarMsg('msg-cc');
+      ficha.innerHTML = fichaClienteHtml(b.datos.clientes[0]);
     } else {
-      mostrar('msg-cc', false, detalle(r, 'Error al consultar'));
+      mostrar('msg-cc', true, b.datos.total + ' clientes coinciden. Elija uno:');
+      ficha.innerHTML = `<table style="margin-top:16px"><tbody>` + b.datos.clientes.map(c => `
+        <tr>
+          <td>${esc(c.tipoDocumento)} ${esc(c.numeroDocumento)}</td>
+          <td>${esc(nombreCliente(c))}</td>
+          <td><button class="btn-primary" style="font-size:12px;padding:4px 10px" data-doc="${escAttr(c.numeroDocumento)}">Ver</button></td>
+        </tr>`).join('') + `</tbody></table>`;
     }
   }
+
+  // Los botones "Ver" llevan el documento en data-doc (no en el onclick) para no inyectar texto en el JS.
+  document.getElementById('ficha-cliente').addEventListener('click', e => {
+    const boton = e.target.closest('button[data-doc]');
+    if (!boton) return;
+    document.getElementById('cc-doc').value = boton.dataset.doc;
+    consultarCliente();
+  });
+
+  document.getElementById('cl-texto').addEventListener('keydown', e => {
+    if (e.key === 'Enter') cargarClientes();
+  });
 
   // RF-020
   async function crearCliente() {
@@ -1336,6 +1419,7 @@
     if (r.ok) {
       mostrar('msg-cn', true, `Cliente ${nombreCliente(r.datos)} creado (${r.datos.tipoDocumento} ${r.datos.numeroDocumento})`);
       ['cn-doc', 'cn-nombre', 'cn-apellido', 'cn-email', 'cn-tel', 'cn-dir'].forEach(id => document.getElementById(id).value = '');
+      cargarClientes();
     } else {
       mostrar('msg-cn', false, detalle(r, 'Error al crear cliente'));
     }
@@ -1352,6 +1436,14 @@
     document.getElementById('cu-email').value = c.email || '';
     document.getElementById('cu-tel').value = c.telefono || '';
     document.getElementById('cu-dir').value = c.direccion || '';
+    ocultarMsg('msg-cu');
+  }
+
+  // Deja vacío el formulario de Actualizar, para que no queden a la vista los datos de la persona anterior.
+  function limpiarActualizarCliente() {
+    ['cu-doc', 'cu-nombre', 'cu-apellido', 'cu-email', 'cu-tel', 'cu-dir'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('cu-tipo').value = 'CC';
+    ajustarTipoCliente('cu');
     ocultarMsg('msg-cu');
   }
 
@@ -1387,13 +1479,17 @@
 
     const r = await llamar('PUT', '/api/clientes/' + encodeURIComponent(documento), nuevo);
     if (r.ok) {
+      // Tras actualizar, el formulario se limpia solo; el mensaje de éxito se queda a la vista.
+      limpiarActualizarCliente();
       mostrar('msg-cu', true, 'Cliente actualizado');
+      cargarClientes();
     } else {
       mostrar('msg-cu', false, detalle(r, 'Error al actualizar'));
     }
   }
 
   async function logout() {
+    ocultarContrasenas();
     await llamar('POST', '/api/auth/logout');
     token = null;
     rolActual = null;
@@ -1422,6 +1518,35 @@
   activarAutocompletado('u-cedula', s => cargarParaActualizar(s.cedula));
   activarAutocompletado('i-cedula');
   activarAutocompletado('a-cedula');
+
+  // Cada campo de contraseña lleva un ojo que la muestra u oculta, para ver en qué se erró y corregir sin borrar todo.
+  const ICONO_OJO = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const ICONO_OJO_TACHADO = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+  function agregarOjo(input) {
+    const envoltorio = document.createElement('div');
+    envoltorio.className = 'campo-pass';
+    input.parentNode.insertBefore(envoltorio, input);
+    envoltorio.appendChild(input);
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'ojo';
+    const poner = visible => {
+      input.type = visible ? 'text' : 'password';
+      boton.innerHTML = visible ? ICONO_OJO_TACHADO : ICONO_OJO;
+      boton.title = boton.ariaLabel = visible ? 'Ocultar contraseña' : 'Mostrar contraseña';
+    };
+    poner(false);
+    boton.addEventListener('click', () => { poner(input.type === 'password'); input.focus(); });
+    boton.ocultar = () => poner(false);
+    envoltorio.appendChild(boton);
+  }
+  document.querySelectorAll('input[type="password"]').forEach(agregarOjo);
+
+  // Al entrar o salir, las contraseñas vuelven a quedar ocultas.
+  function ocultarContrasenas() {
+    document.querySelectorAll('.campo-pass .ojo').forEach(b => b.ocultar());
+  }
 
   document.getElementById('pl-nombre').addEventListener('keydown', e => {
     if (e.key === 'Enter') cargarProductos();

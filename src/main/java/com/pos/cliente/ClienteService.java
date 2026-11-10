@@ -1,6 +1,7 @@
 package com.pos.cliente;
 
 import com.pos.auditoria.Auditoria;
+import com.pos.cliente.dto.ClienteListaResponse;
 import com.pos.cliente.dto.ClienteRequest;
 import com.pos.cliente.dto.ClienteResponse;
 import com.pos.cliente.dto.ClienteSugerencia;
@@ -62,16 +63,29 @@ public class ClienteService {
         return toResponse(obtener(numeroDocumento));
     }
 
+    // RF-022 (por documento o nombre) y RF-023 (listar): el texto es opcional; sin él se listan todos.
+    public ClienteListaResponse listar(String texto) {
+        String limpio = limpiarComodines(texto);
+        List<ClienteResponse> clientes = clienteRepository.buscar(limpio.isEmpty() ? null : limpio).stream()
+                .map(this::toResponse)
+                .toList();
+        return new ClienteListaResponse(clientes.size(), clientes);
+    }
+
     // Lista corta para el autocompletado. Con menos de 2 caracteres no consulta.
-    // Se quitan % y _ para que el texto escrito no funcione como comodín del LIKE.
     public List<ClienteSugerencia> sugerir(String texto) {
-        String limpio = texto == null ? "" : texto.replaceAll("[%_\\\\]", "").trim();
+        String limpio = limpiarComodines(texto);
         if (limpio.length() < 2) {
             return List.of();
         }
         return clienteRepository.sugerir(limpio, PageRequest.of(0, MAX_SUGERENCIAS)).stream()
                 .map(c -> new ClienteSugerencia(c.getNumeroDocumento(), c.getNombre(), c.getApellido()))
                 .toList();
+    }
+
+    // Se quitan % y _ para que el texto escrito no funcione como comodín del LIKE.
+    private static String limpiarComodines(String texto) {
+        return texto == null ? "" : texto.replaceAll("[%_\\\\]", "").trim();
     }
 
     private Cliente obtener(String numeroDocumento) {

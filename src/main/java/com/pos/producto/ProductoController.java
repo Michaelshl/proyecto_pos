@@ -31,22 +31,27 @@ public class ProductoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(productoService.crear(request));
     }
 
+    // El administrador ve todos los productos y puede filtrar por estado; el cajero solo ve los activos y el
+    // parámetro "activo" se ignora (solo puede filtrar por categoría y nombre).
     @GetMapping
     public ResponseEntity<ProductoListaResponse> listar(@RequestParam(required = false) String categoria,
                                                         @RequestParam(required = false) Boolean activo,
-                                                        @RequestParam(required = false) String nombre) {
-        return ResponseEntity.ok(productoService.listar(categoria, activo, nombre));
+                                                        @RequestParam(required = false) String nombre,
+                                                        Authentication authentication) {
+        return ResponseEntity.ok(productoService.listar(categoria, activo, nombre, soloActivos(authentication)));
     }
 
     // Apoyo del autocompletado: pocas coincidencias con código y nombre.
     @GetMapping("/sugerencias")
-    public ResponseEntity<List<ProductoSugerencia>> sugerencias(@RequestParam String q) {
-        return ResponseEntity.ok(productoService.sugerir(q));
+    public ResponseEntity<List<ProductoSugerencia>> sugerencias(@RequestParam String q,
+                                                                Authentication authentication) {
+        return ResponseEntity.ok(productoService.sugerir(q, soloActivos(authentication)));
     }
 
     @GetMapping("/{codigo}")
-    public ResponseEntity<ProductoResponse> consultar(@PathVariable String codigo) {
-        return ResponseEntity.ok(productoService.consultar(codigo));
+    public ResponseEntity<ProductoResponse> consultar(@PathVariable String codigo,
+                                                      Authentication authentication) {
+        return ResponseEntity.ok(productoService.consultar(codigo, soloActivos(authentication)));
     }
 
     @PutMapping("/{codigo}")
@@ -64,6 +69,11 @@ public class ProductoController {
     @GetMapping("/{codigo}/stock")
     public ResponseEntity<StockResponse> consultarStock(@PathVariable String codigo) {
         return ResponseEntity.ok(productoService.consultarStock(codigo));
+    }
+
+    // Solo el administrador ve los productos inactivos: cualquier otro rol ve únicamente los activos.
+    private static boolean soloActivos(Authentication authentication) {
+        return authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
     // El usuario que ajusta es el del token: JwtAuthFilter deja la cédula como nombre de la autenticación.

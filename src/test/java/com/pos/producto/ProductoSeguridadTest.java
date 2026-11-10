@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -141,6 +142,55 @@ class ProductoSeguridadTest {
                         .content("{\"cantidad\":-2,\"tipoMotivo\":\"DANO\",\"motivo\":\"Se cayó de la estantería\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stock").value(6));
+    }
+
+    // Observación del profesor: el cajero no ve los productos inactivos ni puede elegir el estado; solo
+    // filtra por categoría y nombre. El administrador sigue viéndolos todos.
+    @Test
+    void elCajeroSoloVeLosProductosActivosYElAdminTodos() throws Exception {
+        mockMvc.perform(post("/api/categorias").with(user("admin").roles("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"CategoriaSku\",\"descripcion\":\"x\"}"));
+        mockMvc.perform(post("/api/productos").with(user("admin").roles("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON).content(producto("0008001"))).andExpect(status().isCreated());
+        mockMvc.perform(post("/api/productos").with(user("admin").roles("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON).content(producto("0008002"))).andExpect(status().isCreated());
+        mockMvc.perform(patch("/api/productos/0008002/inactivar").with(user("admin").roles("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"motivo\":\"Descontinuado\"}"))
+                .andExpect(status().isOk());
+
+        // Listado: el cajero solo ve el activo, aunque pida los inactivos a propósito.
+        mockMvc.perform(get("/api/productos").with(user("cajero").roles("CAJERO")).param("categoria", "CategoriaSku"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productos[?(@.codigo=='0008001')]").isNotEmpty())
+                .andExpect(jsonPath("$.productos[?(@.codigo=='0008002')]").isEmpty());
+        mockMvc.perform(get("/api/productos").with(user("cajero").roles("CAJERO"))
+                        .param("categoria", "CategoriaSku").param("activo", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productos[?(@.codigo=='0008002')]").isEmpty())
+                .andExpect(jsonPath("$.productos[?(@.codigo=='0008001')]").isNotEmpty());
+        // Buscar por código en el listado: el cajero encuentra el activo y no el inactivo.
+        mockMvc.perform(get("/api/productos").with(user("cajero").roles("CAJERO")).param("nombre", "0008001"))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.productos[0].codigo").value("0008001"));
+        mockMvc.perform(get("/api/productos").with(user("cajero").roles("CAJERO")).param("nombre", "0008002"))
+                .andExpect(jsonPath("$.total").value(0));
+        // Consulta por código: el inactivo responde como si no existiera.
+        mockMvc.perform(get("/api/productos/0008001").with(user("cajero").roles("CAJERO"))).andExpect(status().isOk());
+        mockMvc.perform(get("/api/productos/0008002").with(user("cajero").roles("CAJERO")))
+                .andExpect(status().isNotFound());
+        // Autocompletado: tampoco aparece.
+        mockMvc.perform(get("/api/productos/sugerencias").with(user("cajero").roles("CAJERO")).param("q", "00080"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.codigo=='0008002')]").isEmpty());
+
+        // El administrador ve los dos, filtra por estado y consulta el inactivo.
+        mockMvc.perform(get("/api/productos").with(user("admin").roles("ADMIN")).param("categoria", "CategoriaSku"))
+                .andExpect(jsonPath("$.productos[?(@.codigo=='0008002')]").isNotEmpty());
+        mockMvc.perform(get("/api/productos").with(user("admin").roles("ADMIN"))
+                        .param("categoria", "CategoriaSku").param("activo", "false"))
+                .andExpect(jsonPath("$.productos[?(@.codigo=='0008001')]").isEmpty())
+                .andExpect(jsonPath("$.productos[?(@.codigo=='0008002')]").isNotEmpty());
+        mockMvc.perform(get("/api/productos/0008002").with(user("admin").roles("ADMIN"))).andExpect(status().isOk());
     }
 
     @Test

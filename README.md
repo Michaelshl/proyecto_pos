@@ -88,14 +88,15 @@ Authorization: Bearer <token>
 | `POST /api/productos` | RF-013 | ADMIN |
 | `PUT /api/productos/{codigo}` | RF-014 | ADMIN |
 | `GET /api/productos/{codigo}` | RF-015 | ADMIN y CAJERO |
-| `GET /api/productos?categoria=&activo=&nombre=` | RF-015, RF-016 (filtros opcionales). Orden: activos primero y, dentro de cada grupo, menor stock primero; los inactivos al final | ADMIN y CAJERO |
+| `GET /api/productos?categoria=&activo=&nombre=` | RF-015, RF-016 (filtros opcionales; `nombre` también busca por el comienzo del código). Orden: activos primero y, dentro de cada grupo, menor stock primero; los inactivos al final. **El cajero solo ve los productos activos**: el filtro `activo` se ignora para él, el autocompletado no los incluye y consultar un inactivo por código responde 404 | ADMIN y CAJERO |
 | `GET /api/productos/sugerencias?q=` | Apoyo de RF-015 (autocompletado) | ADMIN y CAJERO |
 | `PATCH /api/productos/{codigo}/inactivar` | RF-017 | ADMIN |
 | `GET /api/productos/{codigo}/stock` | RF-018 | ADMIN |
 | `POST /api/productos/{codigo}/ajustes` | RF-019 | ADMIN |
 | `POST /api/clientes` | RF-020 | ADMIN y CAJERO |
 | `PUT /api/clientes/{numeroDocumento}` | RF-021 | ADMIN y CAJERO |
-| `GET /api/clientes/{numeroDocumento}` | Apoyo de RF-021; base del RF-022 (Sprint 3) | ADMIN y CAJERO |
+| `GET /api/clientes?q=` | RF-023 (listar, con total) y RF-022 (buscar por documento, nombre o apellido; sin `q` lista todos) | ADMIN y CAJERO |
+| `GET /api/clientes/{numeroDocumento}` | RF-022 (consulta por documento) | ADMIN y CAJERO |
 | `GET /api/clientes/sugerencias?q=` | Apoyo de RF-021 (autocompletado) | ADMIN y CAJERO |
 
 Todos los errores responden con el mismo formato:

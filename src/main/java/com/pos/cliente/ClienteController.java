@@ -1,5 +1,6 @@
 package com.pos.cliente;
 
+import com.pos.cliente.dto.ClienteListaResponse;
 import com.pos.cliente.dto.ClienteRequest;
 import com.pos.cliente.dto.ClienteResponse;
 import com.pos.cliente.dto.ClienteSugerencia;
@@ -24,6 +25,12 @@ public class ClienteController {
     @PostMapping
     public ResponseEntity<ClienteResponse> crear(@Valid @RequestBody ClienteRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(clienteService.crear(request));
+    }
+
+    // RF-023 listar clientes; con ?q= también busca por documento, nombre o apellido (RF-022).
+    @GetMapping
+    public ResponseEntity<ClienteListaResponse> listar(@RequestParam(required = false) String q) {
+        return ResponseEntity.ok(clienteService.listar(q));
     }
 
     // Apoyo del autocompletado: pocas coincidencias con documento, nombre y apellido.
