@@ -78,15 +78,22 @@ public class ProductoService {
         return toResponse(producto);
     }
 
-    // RF-015 (ficha por código)
-    public ProductoResponse consultar(String codigo) {
-        return toResponse(obtener(codigo));
+    // RF-015 (ficha por código). Con soloActivos (el cajero) un producto inactivo responde igual que uno que
+    // no existe: el cajero no sabe que está inactivo.
+    public ProductoResponse consultar(String codigo, boolean soloActivos) {
+        Producto producto = obtener(codigo);
+        if (soloActivos && !Boolean.TRUE.equals(producto.getActivo())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado");
+        }
+        return toResponse(producto);
     }
 
-    // RF-015 (por nombre) y RF-016: todos los filtros son opcionales.
-    public ProductoListaResponse listar(String categoria, Boolean activo, String nombre) {
+    // RF-015 (por nombre) y RF-016: todos los filtros son opcionales. Con soloActivos (el cajero) solo se ven
+    // los productos activos y el filtro de estado se ignora: el cajero no elige entre activos e inactivos.
+    public ProductoListaResponse listar(String categoria, Boolean activo, String nombre, boolean soloActivos) {
+        Boolean filtroActivo = soloActivos ? Boolean.TRUE : activo;
         List<ProductoResponse> productos = productoRepository
-                .filtrar(vacioANulo(categoria), activo, vacioANulo(limpiarComodines(nombre)))
+                .filtrar(vacioANulo(categoria), filtroActivo, vacioANulo(limpiarComodines(nombre)))
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -186,12 +193,12 @@ public class ProductoService {
     }
 
     // Lista corta para el autocompletado. Con menos de 2 caracteres no consulta.
-    public List<ProductoSugerencia> sugerir(String texto) {
+    public List<ProductoSugerencia> sugerir(String texto, boolean soloActivos) {
         String limpio = limpiarComodines(texto);
         if (limpio.length() < 2) {
             return List.of();
         }
-        return productoRepository.sugerir(limpio, PageRequest.of(0, MAX_SUGERENCIAS)).stream()
+        return productoRepository.sugerir(limpio, soloActivos, PageRequest.of(0, MAX_SUGERENCIAS)).stream()
                 .map(p -> new ProductoSugerencia(p.getCodigo(), p.getNombre()))
                 .toList();
     }

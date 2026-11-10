@@ -106,6 +106,18 @@ class ProductoRepositoryTest {
         assertEquals(List.of("P001"), codigos(productos.filtrar(null, null, "COCA")));
     }
 
+    // Pedido del usuario: el cajero también encuentra un producto escribiendo su código.
+    @Test
+    void elTextoTambienBuscaPorElComienzoDelCodigo() {
+        assertEquals(List.of("L100"), codigos(productos.filtrar(null, null, "L100")));
+        assertEquals(List.of("L100"), codigos(productos.filtrar(null, null, "L1")));
+        assertEquals(List.of("P001"), codigos(productos.filtrar(null, true, "P001")));
+        // Un código que está en el medio no coincide (solo el comienzo) y uno inactivo respeta el filtro de estado.
+        assertTrue(productos.filtrar(null, null, "001").isEmpty());
+        assertTrue(productos.filtrar(null, true, "P002").isEmpty());
+        assertEquals(List.of("P002"), codigos(productos.filtrar(null, false, "P002")));
+    }
+
     @Test
     void combinaLosTresFiltros() {
         assertEquals(List.of("P001"), codigos(productos.filtrar("Bebidas", true, "cola")));
@@ -116,17 +128,25 @@ class ProductoRepositoryTest {
 
     @Test
     void sugiereporCodigoQueEmpiezaPorElTexto() {
-        assertEquals(List.of("L100"), codigos(productos.sugerir("L1", PageRequest.of(0, 8))));
+        assertEquals(List.of("L100"), codigos(productos.sugerir("L1", false, PageRequest.of(0, 8))));
     }
 
     @Test
     void sugierePorNombreQueContieneElTexto() {
-        assertEquals(List.of("P002"), codigos(productos.sugerir("naranja", PageRequest.of(0, 8))));
+        assertEquals(List.of("P002"), codigos(productos.sugerir("naranja", false, PageRequest.of(0, 8))));
+    }
+
+    // El cajero no ve los productos inactivos ni en el autocompletado.
+    @Test
+    void sugerirSoloActivosOcultaLosInactivos() {
+        assertEquals(List.of("P002"), codigos(productos.sugerir("naranja", false, PageRequest.of(0, 8))));
+        assertTrue(productos.sugerir("naranja", true, PageRequest.of(0, 8)).isEmpty());
+        assertEquals(List.of("P001"), codigos(productos.sugerir("P0", true, PageRequest.of(0, 8))));
     }
 
     @Test
     void sugerirRespetaElLimite() {
-        assertEquals(1, productos.sugerir("P0", PageRequest.of(0, 1)).size());
+        assertEquals(1, productos.sugerir("P0", false, PageRequest.of(0, 1)).size());
     }
 
     // ---- ajustes_stock (llave compuesta) ----

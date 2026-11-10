@@ -193,6 +193,14 @@ Authorization: Bearer {{token}}
 GET http://localhost:8081/api/clientes/80010001
 Authorization: Bearer {{token}}
 
+### Listar clientes (RF-023) con su total; con ?q= busca por documento, nombre o apellido (RF-022)
+GET http://localhost:8081/api/clientes
+Authorization: Bearer {{token}}
+
+###
+GET http://localhost:8081/api/clientes?q=ana
+Authorization: Bearer {{token}}
+
 ### Sugerencias de clientes para el autocompletado
 GET http://localhost:8081/api/clientes/sugerencias?q=ana
 Authorization: Bearer {{token}}

@@ -161,7 +161,7 @@ class ProductoServiceTest {
     void consultarInexistenteDa404() {
         when(productoRepository.findById("X")).thenReturn(Optional.empty());
 
-        ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> service.consultar("X"));
+        ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> service.consultar("X", false));
 
         assertEquals(404, estado(e));
     }
@@ -171,7 +171,7 @@ class ProductoServiceTest {
         when(productoRepository.filtrar("Bebidas", true, "col"))
                 .thenReturn(List.of(producto("P001", 20, 5, true), producto("P002", 3, 5, true)));
 
-        var r = service.listar("Bebidas", true, "col");
+        var r = service.listar("Bebidas", true, "col", false);
 
         assertEquals(2, r.getTotal());
         assertEquals(2, r.getProductos().size());
@@ -181,10 +181,53 @@ class ProductoServiceTest {
     void listarConFiltrosVaciosLosTrataComoNulos() {
         when(productoRepository.filtrar(null, null, null)).thenReturn(List.of());
 
-        var r = service.listar("  ", null, "%_");
+        var r = service.listar("  ", null, "%_", false);
 
         assertEquals(0, r.getTotal());
         verify(productoRepository).filtrar(null, null, null);
+    }
+
+    // ---- Observación del profesor: el cajero solo ve los productos activos ----
+
+    @Test
+    void elCajeroSoloListaLosActivosAunqueIndiqueElEstado() {
+        when(productoRepository.filtrar("Bebidas", true, null)).thenReturn(List.of(producto("P001", 20, 5, true)));
+
+        // Pide inactivos (false) pero, como cajero, el estado se ignora y se filtra por activos.
+        var r = service.listar("Bebidas", false, null, true);
+
+        assertEquals(1, r.getTotal());
+        verify(productoRepository).filtrar("Bebidas", true, null);
+        verify(productoRepository, never()).filtrar(anyString(), eq(false), any());
+    }
+
+    @Test
+    void elAdministradorSigueViendoLosInactivosYFiltrandoPorEstado() {
+        when(productoRepository.filtrar(null, false, null)).thenReturn(List.of(producto("P002", 4, 5, false)));
+
+        var r = service.listar(null, false, null, false);
+
+        assertEquals(1, r.getTotal());
+        verify(productoRepository).filtrar(null, false, null);
+    }
+
+    @Test
+    void elCajeroNoPuedeConsultarUnProductoInactivo() {
+        when(productoRepository.findById("P002")).thenReturn(Optional.of(producto("P002", 4, 5, false)));
+
+        ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> service.consultar("P002", true));
+
+        assertEquals(404, estado(e));
+        assertEquals("Producto no encontrado", e.getReason());
+        // El administrador sí lo consulta.
+        assertEquals("P002", service.consultar("P002", false).getCodigo());
+    }
+
+    @Test
+    void elCajeroConsultaUnProductoActivo() {
+        when(productoRepository.findById("P001")).thenReturn(Optional.of(producto("P001", 20, 5, true)));
+
+        assertEquals("P001", service.consultar("P001", true).getCodigo());
     }
 
     // ---- RF-017 inactivar ----
@@ -391,17 +434,17 @@ class ProductoServiceTest {
 
     @Test
     void sugerirConMenosDeDosCaracteresNoConsulta() {
-        assertTrue(service.sugerir("a").isEmpty());
-        assertTrue(service.sugerir(null).isEmpty());
+        assertTrue(service.sugerir("a", false).isEmpty());
+        assertTrue(service.sugerir(null, false).isEmpty());
         verifyNoInteractions(productoRepository);
     }
 
     @Test
     void sugerirQuitaLosComodinesDelLikeAntesDeConsultar() {
-        when(productoRepository.sugerir(eq("co"), any(Pageable.class)))
+        when(productoRepository.sugerir(eq("co"), eq(false), any(Pageable.class)))
                 .thenReturn(List.of(producto("P001", 1, 1, true)));
 
-        var r = service.sugerir("%c_o");
+        var r = service.sugerir("%c_o", false);
 
         assertEquals(1, r.size());
         assertEquals("P001", r.get(0).getCodigo());

@@ -302,6 +302,13 @@
           "request": { "method": "GET", "url": "{{baseUrl}}/api/productos/100001/stock" }
         },
         {
+          "name": "Listar productos buscando por código (RF-015)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y el producto 100001 aparece al buscar por su código', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().productos.map(p => p.codigo)).to.include('100001'); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/productos?nombre=100001" }
+        },
+        {
           "name": "Ajustar stock +10 (RF-019)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('200 con el stock nuevo', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().stock).to.be.a('number'); });"
@@ -544,6 +551,27 @@
           "request": { "method": "GET", "url": "{{baseUrl}}/api/clientes/sugerencias?q=800" }
         },
         {
+          "name": "Listar clientes (RF-023)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con total y lista', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.total).to.eql(j.clientes.length); pm.expect(j.total).to.be.at.least(1); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/clientes" }
+        },
+        {
+          "name": "Buscar clientes por documento o nombre (RF-022)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y todos coinciden con el texto', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.total).to.be.at.least(1); j.clientes.forEach(c => pm.expect((c.numeroDocumento + ' ' + c.nombre + ' ' + (c.apellido || '')).toLowerCase()).to.include('lopez')); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/clientes?q=lopez" }
+        },
+        {
+          "name": "Buscar clientes sin coincidencias -> total 0 (RF-022)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con total 0', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().total).to.eql(0); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/clientes?q=zzz-no-existe" }
+        },
+        {
           "name": "Sin token -> 401",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('401', () => pm.response.to.have.status(401));"
@@ -641,6 +669,28 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/productos",
             "body": { "mode": "raw", "raw": "{\n  \"codigo\": \"100777\",\n  \"nombre\": \"x\",\n  \"precioVenta\": 1,\n  \"stockInicial\": 1,\n  \"stockMinimo\": 1,\n  \"categoria\": \"Bebidas\"\n}" }
+          }
+        },
+        {
+          "name": "Cajero lista solo productos activos aunque pida los inactivos -> 200",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y ningún producto inactivo (el 100002 está inactivo)', () => { pm.response.to.have.status(200); const j = pm.response.json(); j.productos.forEach(p => pm.expect(p.activo).to.eql(true)); pm.expect(j.productos.map(p => p.codigo)).to.not.include('100002'); });"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/productos?activo=false"
+          }
+        },
+        {
+          "name": "Cajero consulta producto inactivo -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404 como si no existiera', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/productos/100002"
           }
         },
         {

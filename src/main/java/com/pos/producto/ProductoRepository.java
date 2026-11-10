@@ -9,26 +9,30 @@ import java.util.List;
 
 public interface ProductoRepository extends JpaRepository<Producto, String> {
 
-    // Listado con filtros opcionales (RF-015, RF-016): categoría, estado y parte del nombre.
+    // Listado con filtros opcionales (RF-015, RF-016): categoría, estado y texto. El texto coincide con parte del
+    // nombre o con el comienzo del código, para que el cajero encuentre un producto escribiendo su código.
     // Orden: primero los activos y, dentro de cada grupo, el de menor stock primero (los que más urge reponer);
     // los inactivos van al final y conservan el stock con el que quedaron. Si empatan, por nombre.
     @Query("""
             select p from Producto p
             where (:categoria is null or p.categoria.nombre = :categoria)
               and (:activo is null or p.activo = :activo)
-              and (:nombre is null or lower(p.nombre) like lower(concat('%', :nombre, '%')))
+              and (:nombre is null or lower(p.nombre) like lower(concat('%', :nombre, '%'))
+                                   or p.codigo like concat(:nombre, '%'))
             order by p.activo desc, p.stock asc, p.nombre asc
             """)
     List<Producto> filtrar(@Param("categoria") String categoria,
                            @Param("activo") Boolean activo,
                            @Param("nombre") String nombre);
 
-    // Autocompletado: el código empieza por el texto, o el nombre lo contiene.
+    // Autocompletado: el código empieza por el texto, o el nombre lo contiene. Con soloActivos (el cajero)
+    // no aparecen los productos inactivos.
     @Query("""
             select p from Producto p
-            where p.codigo like concat(:texto, '%')
-               or lower(p.nombre) like lower(concat('%', :texto, '%'))
+            where (p.codigo like concat(:texto, '%')
+                   or lower(p.nombre) like lower(concat('%', :texto, '%')))
+              and (:soloActivos = false or p.activo = true)
             order by p.nombre
             """)
-    List<Producto> sugerir(@Param("texto") String texto, Pageable limite);
+    List<Producto> sugerir(@Param("texto") String texto, @Param("soloActivos") boolean soloActivos, Pageable limite);
 }

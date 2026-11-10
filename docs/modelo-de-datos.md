@@ -49,6 +49,7 @@ erDiagram
         int consecutivo PK
         string usuario_cedula FK
         int cantidad
+        string tipo_motivo
         string motivo
         datetime fecha
     }
@@ -148,9 +149,12 @@ erDiagram
 
 - **`productos.motivo_inactivacion` (Sprint 2).** No estaba en el diagrama aprobado. El RF-017 pide un motivo al inactivar un producto, y sin esta columna el motivo se perdería. Se copió el criterio de `usuarios.motivo_inactivacion` (texto de hasta 500 caracteres, vacío mientras el producto está activo).
 - **`ajustes_stock.motivo` y `usuario_cedula` son obligatorios** (`NOT NULL`): un ajuste sin responsable o sin motivo no sirve como historial (RF-019).
-- **`clientes`:** el tipo de documento se valida en la aplicación (CC, CE, TI, NIT o PP) y no en la base de datos, para poder agregar tipos sin una migración.
+- **`clientes`:** el tipo de documento se valida en la aplicación (CC, CE, TI, NIT, PP o PPT) y no en la base de datos, para poder agregar tipos sin una migración.
 - **`clientes.apellido` es opcional y `clientes.nombre` admite 150 caracteres (migración `V3`, 2026-10-12).** Una empresa (NIT) tiene razón social y no apellido, y la razón social se guarda en `nombre`. Con `V2` el apellido era obligatorio. La `V3` lo vuelve opcional y, para los NIT que ya existían con nombre y apellido (por ejemplo "Tienda" + "El Sol"), los une en una sola razón social ("Tienda El Sol").
 - **`productos.codigo` pasó a SKU numérico (2026-10-12):** antes aceptaba cualquier texto de hasta 30 caracteres. Solo cambió la validación de la aplicación, no la columna, así que no hizo falta migración; los productos creados antes con letras siguen existiendo.
+- **`ajustes_stock.tipo_motivo` (migración `V4`, 2026-11-06).** Observación del profesor: el administrador no puede ajustar el stock "a su gusto". Cada ajuste lleva un tipo de motivo de una lista cerrada (`INGRESO_COMPRA`, `DEVOLUCION_CLIENTE`, `DANO`, `VENCIMIENTO`, `PERDIDA`, `CONTEO_FISICO`) que debe ser coherente con el signo de la cantidad; `motivo` pasa a ser la observación. Los ajustes anteriores quedan como `SIN_CLASIFICAR`. La lista se valida en la aplicación, no en la base.
+- **`clientes`: tipo `PPT` y contacto obligatorio (2026-11-06).** Se agregó el tipo de documento `PPT` (Permiso por Protección Temporal), que se trata como una persona (lleva apellido). El correo y el teléfono son obligatorios al crear y actualizar, validado en la aplicación; las columnas siguen admitiendo `NULL` por los clientes anteriores.
+- **Orden y visibilidad de productos.** El listado va con los activos primero y el de menor stock primero; el cajero solo ve productos activos. No cambian tablas: son reglas de consulta.
 
 ## Pendiente
 

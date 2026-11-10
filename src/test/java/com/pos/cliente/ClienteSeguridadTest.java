@@ -63,6 +63,36 @@ class ClienteSeguridadTest {
     }
 
     @Test
+    void listarClientesSinTokenDa401() throws Exception {
+        mockMvc.perform(get("/api/clientes")).andExpect(status().isUnauthorized());
+    }
+
+    // RF-023 y RF-022: el cajero lista todos los clientes con su total y los busca por documento o nombre.
+    @Test
+    @WithMockUser(roles = "CAJERO")
+    void cajeroListaYBuscaClientesPorDocumentoONombre() throws Exception {
+        mockMvc.perform(post("/api/clientes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipoDocumento\":\"CC\",\"numeroDocumento\":\"7100001\",\"nombre\":\"Zoraida\","
+                                + "\"apellido\":\"Quimbayaa\"" + CONTACTO + "}"))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/clientes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").isNumber())
+                .andExpect(jsonPath("$.clientes").isArray());
+        mockMvc.perform(get("/api/clientes").param("q", "quimbayaa"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.clientes[0].numeroDocumento").value("7100001"));
+        mockMvc.perform(get("/api/clientes").param("q", "7100001"))
+                .andExpect(jsonPath("$.total").value(1));
+        // Sin coincidencias: lista vacía con total 0 (el mensaje "sin resultados" lo muestra la pantalla).
+        mockMvc.perform(get("/api/clientes").param("q", "no-existe-nadie-asi"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0));
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void adminTambienPuedeConsultar() throws Exception {
         mockMvc.perform(get("/api/clientes/NO-EXISTE")).andExpect(status().isNotFound());

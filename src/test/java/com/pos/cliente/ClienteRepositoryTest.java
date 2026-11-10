@@ -42,6 +42,36 @@ class ClienteRepositoryTest {
                 .map(Cliente::getNumeroDocumento).toList();
     }
 
+    private List<String> buscados(String texto) {
+        return repository.buscar(texto).stream().map(Cliente::getNumeroDocumento).toList();
+    }
+
+    // ---- listar y buscar (RF-022 y RF-023) ----
+
+    @Test
+    void buscarSinTextoDevuelveTodosOrdenadosPorApellido() {
+        // Anaya, Lopez, Ramirez
+        assertEquals(List.of("1002", "1001", "900123456-7"), buscados(null));
+    }
+
+    @Test
+    void buscarPorDocumentoNombreOApellidoSinImportarMayusculas() {
+        assertEquals(List.of("1001"), buscados("1001"));
+        assertEquals(List.of("900123456-7"), buscados("9001"));
+        assertEquals(List.of("1002", "1001"), buscados("ana"));   // Anaya (apellido) y Ana (nombre), por apellido
+        assertEquals(List.of("900123456-7"), buscados("RAMIREZ"));
+        assertTrue(buscados("zzz").isEmpty());
+    }
+
+    @Test
+    void unaEmpresaSinApellidoSeOrdenaPorSuRazonSocialYSeEncuentraPorEsta() {
+        repository.saveAndFlush(cliente("901234567-8", "NIT", "Distribuciones El Sol", null));
+
+        // Anaya, Distribuciones El Sol, Lopez, Ramirez
+        assertEquals(List.of("1002", "901234567-8", "1001", "900123456-7"), buscados(null));
+        assertEquals(List.of("901234567-8"), buscados("sol"));
+    }
+
     @Test
     void sugierePorDocumentoQueEmpiezaPorElTexto() {
         assertEquals(List.of("1001", "1002"), numeros("100").stream().sorted().toList());

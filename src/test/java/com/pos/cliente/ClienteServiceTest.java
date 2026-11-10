@@ -225,6 +225,38 @@ class ClienteServiceTest {
         assertEquals(404, estado(e));
     }
 
+    // ---- RF-022 y RF-023 listar / buscar ----
+
+    @Test
+    void listarSinTextoPideTodosYDevuelveElTotal() {
+        when(clienteRepository.buscar(null)).thenReturn(List.of(existente("1001"), existente("1002")));
+
+        var r = service.listar(null);
+
+        assertEquals(2, r.getTotal());
+        assertEquals("1001", r.getClientes().get(0).getNumeroDocumento());
+    }
+
+    @Test
+    void listarConTextoQuitaLosComodinesYLoRecorta() {
+        when(clienteRepository.buscar("ana")).thenReturn(List.of(existente("1001")));
+
+        var r = service.listar("  %a_na ");
+
+        assertEquals(1, r.getTotal());
+        verify(clienteRepository).buscar("ana");
+    }
+
+    @Test
+    void listarConSoloComodinesEsComoNoPonerTexto() {
+        when(clienteRepository.buscar(null)).thenReturn(List.of());
+
+        var r = service.listar("%_");
+
+        assertEquals(0, r.getTotal());
+        assertTrue(r.getClientes().isEmpty());
+    }
+
     // ---- autocompletado ----
 
     @Test
