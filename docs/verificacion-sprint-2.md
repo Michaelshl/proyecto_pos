@@ -86,7 +86,7 @@ Los requisitos del Sprint 2 son solo crear y actualizar (RF-020, RF-021). La pes
 
 1. Importar `postman/POS_API.postman_collection.json`.
 2. Rellenar las variables de la colección: `baseUrl` (por ejemplo `http://localhost:8081`), `adminCedula` y `adminPassword`.
-3. Ejecutar la colección completa (Run). Resultado esperado: **69 requests y 69 pruebas, todas en verde** (el 2026-10-11 la colección tenía 56 y pasó completa; las 7 nuevas —SKU, NIT, tipo PPT, correo y teléfono obligatorios y ajuste incoherente— aún no se han ejecutado en Postman). **No ejecutarla contra `pos_db`**: crea productos y clientes de prueba (e inactiva uno); usar una base aparte. Se puede ejecutar varias veces: los casos de "crear" aceptan 201 o 400 si ya existe.
+3. Ejecutar la colección completa (Run). Resultado esperado: **98 requests y 98 pruebas, todas en verde** (el 2026-10-11 la colección tenía 56 y pasó completa; las 7 nuevas —SKU, NIT, tipo PPT, correo y teléfono obligatorios y ajuste incoherente— aún no se han ejecutado en Postman). **No ejecutarla contra `pos_db`**: crea productos y clientes de prueba (e inactiva uno); usar una base aparte. Se puede ejecutar varias veces: los casos de "crear" aceptan 201 o 400 si ya existe.
 
 Las carpetas nuevas son **Productos** (16), **Clientes** (10) y 7 casos nuevos dentro de **Control por rol (Cajero)**.
 
@@ -96,7 +96,7 @@ Las carpetas nuevas son **Productos** (16), **Clientes** (10) y 7 casos nuevos d
 ./mvnw test
 ```
 
-Resultado esperado: **165 pruebas, 0 fallos** (en Windows con certificados corporativos: `MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT`). Desde el Sprint 1 (64 pruebas) se agregaron 101: productos, clientes, login con nombre, SKU numérico, NIT, logs de auditoría, ajustes con tipo de motivo y contacto obligatorio.
+Resultado esperado: **249 pruebas, 0 fallos** (en Windows con certificados corporativos: `MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT`). Desde el Sprint 1 (64 pruebas) se agregaron 185: productos, clientes, login con nombre, SKU numérico, NIT, logs de auditoría, ajustes con tipo de motivo y contacto obligatorio.
 
 ## Resultado de la verificación automática (2026-10-11)
 
