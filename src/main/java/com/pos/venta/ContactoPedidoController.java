@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// Contactos de pedido: quien hace una nota de pedido sin ser cliente registrado. El cajero escribe el celular y
-// ve el contacto con el correo y la dirección enmascarados; el administrador, completos.
+// Contactos de pedido: quien hace una nota de pedido sin ser cliente registrado. El cajero escribe la cédula y
+// ve el contacto con el celular, el correo y la dirección enmascarados; el administrador, completos.
 @RestController
 @RequestMapping("/api/contactos-pedido")
 public class ContactoPedidoController {
@@ -20,10 +20,10 @@ public class ContactoPedidoController {
         this.ventaService = ventaService;
     }
 
-    @GetMapping("/{telefono}")
-    public ResponseEntity<ContactoPedidoResponse> consultar(@PathVariable String telefono,
+    @GetMapping("/{documento}")
+    public ResponseEntity<ContactoPedidoResponse> consultar(@PathVariable String documento,
                                                             Authentication authentication) {
         boolean esAdmin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        return ResponseEntity.ok(ventaService.consultarContacto(telefono, esAdmin));
+        return ResponseEntity.ok(ventaService.consultarContacto(documento, esAdmin));
     }
 }

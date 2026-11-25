@@ -5,8 +5,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-// Contacto de una nota de pedido sin cliente registrado. Solo el celular es obligatorio aquí: si ya está
-// registrado se usa el contacto guardado; si es nuevo, el servicio exige nombre, correo y dirección.
+// Datos de contacto de una nota de pedido sin cliente registrado (la cédula va en clienteDocumento). Si esa cédula
+// ya está registrada no se necesitan; si es nueva, el servicio exige celular, nombre, correo y dirección.
 @Data
 public class ContactoPedidoRequest {
 

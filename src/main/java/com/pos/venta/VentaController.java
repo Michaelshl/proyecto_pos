@@ -1,6 +1,7 @@
 package com.pos.venta;
 
 import com.pos.venta.dto.LineaVentaRequest;
+import com.pos.venta.dto.VentaAnularRequest;
 import com.pos.venta.dto.VentaCrearRequest;
 import com.pos.venta.dto.VentaListaResponse;
 import com.pos.venta.dto.VentaResponse;
@@ -54,6 +55,20 @@ public class VentaController {
     @GetMapping("/{numero}")
     public ResponseEntity<VentaResponse> consultar(@PathVariable String numero, Authentication authentication) {
         return ResponseEntity.ok(ventaService.consultar(numero, authentication.getName(), esAdmin(authentication)));
+    }
+
+    // RF-032: la factura de una venta registrada o anulada.
+    @GetMapping("/{numero}/factura")
+    public ResponseEntity<VentaResponse> factura(@PathVariable String numero, Authentication authentication) {
+        return ResponseEntity.ok(ventaService.factura(numero, authentication.getName(), esAdmin(authentication)));
+    }
+
+    // RF-029: anular una venta registrada, con motivo. Solo el administrador (SecurityConfig).
+    @PostMapping("/{numero}/anular")
+    public ResponseEntity<VentaResponse> anular(@PathVariable String numero,
+                                                @Valid @RequestBody VentaAnularRequest request,
+                                                Authentication authentication) {
+        return ResponseEntity.ok(ventaService.anular(numero, request.getMotivo(), authentication.getName()));
     }
 
     // Cancelar el borrador: no queda nada guardado.

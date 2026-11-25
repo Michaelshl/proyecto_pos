@@ -100,7 +100,14 @@
     .btn-sec { background: #e4e6eb; color: #333; }
     .panel, .subpanel { display: none; }
     .panel.activo, .subpanel.activo { display: block; }
-  </style>
+    /* Impresión de la factura: solo se imprime la zona marcada. */
+  @media print {
+    body.imprimiendo * { visibility: hidden; }
+    body.imprimiendo .zona-impresion, body.imprimiendo .zona-impresion * { visibility: visible; }
+    body.imprimiendo .zona-impresion { position: absolute; left: 0; top: 0; width: 100%; }
+    .no-imprimir { display: none !important; }
+  }
+</style>
 </head>
 <body>
 
@@ -473,16 +480,16 @@
       <div id="ven-inicio">
         <div class="form-row">
           <div class="campo-auto"><input id="vn-cliente" placeholder="Cédula / NIT del cliente" autocomplete="off" /><div class="lista-auto" id="lista-vn-cliente"></div></div>
+          <span id="vn-aviso" role="status" style="display:none;align-self:center;color:#b45309;font-weight:bold">El cliente no se encuentra registrado: la venta sigue como Consumidor final</span>
         </div>
         <label class="casilla"><input type="checkbox" id="vn-pedido" /> Nota de pedido</label>
         <div id="ven-contacto" style="display:none">
-          <div class="form-row">
-            <input id="vp-telefono" placeholder="Celular del contacto" maxlength="20" />
-            <button class="btn-primary" onclick="buscarContacto()">Buscar contacto</button>
-          </div>
           <div id="vp-info" class="ficha-resumen" style="display:none"></div>
           <div id="vp-nuevo">
-            <div class="form-row"><input id="vp-nombre" placeholder="Nombre" maxlength="150" /></div>
+            <div class="form-row">
+              <input id="vp-nombre" placeholder="Nombre" maxlength="150" />
+              <input id="vp-telefono" placeholder="Celular del contacto" maxlength="20" />
+            </div>
             <div class="form-row">
               <input id="vp-correo" type="email" placeholder="Correo electrónico" maxlength="150" />
               <input id="vp-direccion" placeholder="Dirección" maxlength="255" />
@@ -505,7 +512,8 @@
         <p id="ven-total" style="margin:14px 0;font-size:18px;font-weight:bold"></p>
         <button class="btn-primary" id="btn-registrar-venta" onclick="registrarVenta()">Registrar venta</button>
         <button class="btn-danger" id="btn-cancelar-venta" style="margin-left:8px" onclick="cancelarVenta()">Cancelar venta</button>
-        <button class="btn-warning" id="btn-nueva-venta" style="display:none" onclick="nuevaVenta()">Nueva venta</button>
+        <button class="btn-primary no-imprimir" id="btn-imprimir-venta" style="display:none" onclick="imprimirZona('ven-curso')">Imprimir factura</button>
+        <button class="btn-warning no-imprimir" id="btn-nueva-venta" style="display:none;margin-left:8px" onclick="nuevaVenta()">Nueva venta</button>
       </div>
       <div id="msg-vn" class="msg"></div>
     </div>
@@ -1581,16 +1589,19 @@
   // La venta en curso es un borrador con su propio número (B-000001). La factura (F-000001) solo se asigna al
   // registrarla. Un borrador que se cancela, o del que se sale sin registrar, se borra: no interesa conservarlo.
   let borradorActual = null;
-  let contactoEncontrado = false;   // el celular escrito ya es un contacto de pedido registrado
+  let clienteSinRegistro = false;   // el documento escrito no es de un cliente registrado
+  let avisoCliente = '';            // aviso que acompaña a la venta en curso
+  let contactoEncontrado = false;   // la cédula escrita ya es un contacto de pedido registrado
 
   const ICONO_BASURA = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
 
   // Cliente de la venta: nombre y documento, el correo donde llega la factura y, en una nota de pedido, el contacto.
   // El cajero recibe correo, teléfono y dirección enmascarados (con asteriscos); el administrador, completos.
   function infoCliente(v) {
-    let html = v.contactoPedido
-      ? '<div>Contacto de pedido: <strong>' + esc(v.clienteNombre || '') + '</strong></div>'
-      : '<div>Cliente: <strong>' + esc(v.clienteNombre || '') + '</strong> (' + esc(v.clienteDocumento || '') + ')</div>';
+    let html = '<div>Cliente: <strong>' + esc(v.clienteNombre || '') + '</strong> (' + esc(v.clienteDocumento || '') + ')</div>';
+    if (v.contactoPedido) {
+      html += '<div>Datos de entrega: <strong>' + esc(v.contactoNombre || '') + '</strong> (' + esc(v.contactoDocumento || '') + ')</div>';
+    }
     if (v.clienteCorreo) html += '<div>Correo para la factura: ' + esc(v.clienteCorreo) + '</div>';
     if (v.esPedido) {
       html += '<div><strong>Nota de pedido</strong> · Teléfono: ' + esc(v.clienteTelefono || '(sin teléfono)')
@@ -1606,11 +1617,13 @@
     document.getElementById('ven-inicio').style.display = 'none';
     document.getElementById('ven-curso').style.display = 'block';
     document.getElementById('ven-cliente-info').innerHTML =
-      (enProceso ? '' : '<div><strong>Factura ' + esc(v.numeroFactura) + '</strong> · ' + esc(v.estado) + '</div>') + infoCliente(v);
+      (enProceso ? '' : '<div><strong>Factura ' + esc(v.numeroFactura) + '</strong> · ' + esc(v.estado) + '</div>') + infoCliente(v)
+      + (avisoCliente ? '<div class="no-imprimir" style="color:#b45309;font-weight:bold">' + esc(avisoCliente) + '</div>' : '');
     document.getElementById('ven-agregar').style.display = enProceso ? 'flex' : 'none';
     document.getElementById('btn-registrar-venta').style.display = enProceso ? 'inline-block' : 'none';
     document.getElementById('btn-cancelar-venta').style.display = enProceso ? 'inline-block' : 'none';
     document.getElementById('btn-nueva-venta').style.display = enProceso ? 'none' : 'inline-block';
+    document.getElementById('btn-imprimir-venta').style.display = enProceso ? 'none' : 'inline-block';
     const tbody = document.getElementById('tabla-venta');
     if (v.lineas.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">Aún no hay productos</td></tr>';
@@ -1631,31 +1644,23 @@
 
   // Los datos del contacto de pedido solo se piden en una nota de pedido sin cliente registrado.
   function mostrarContacto() {
-    const pide = document.getElementById('vn-pedido').checked && !valorDe('vn-cliente');
+    const pide = document.getElementById('vn-pedido').checked && clienteSinRegistro;
     document.getElementById('ven-contacto').style.display = pide ? 'block' : 'none';
   }
 
-  // Busca el contacto por su celular: si está registrado se muestra enmascarado y no hay que volver a escribirlo.
-  async function buscarContacto() {
-    const telefono = valorDe('vp-telefono');
-    if (!telefono) { mostrar('msg-vn', false, 'Escriba el celular del contacto'); return; }
-    const r = await llamar('GET', '/api/contactos-pedido/' + encodeURIComponent(telefono));
+  // Busca el contacto de pedido de esa cédula: si está registrado se muestra enmascarado y no hay que volver a escribir
+  // sus datos; si no, se piden.
+  async function buscarContacto(documento) {
+    const r = await llamar('GET', '/api/contactos-pedido/' + encodeURIComponent(documento));
+    if (documento !== valorDe('vn-cliente')) return;   // cambió mientras se consultaba
+    contactoEncontrado = r.ok;
     const info = document.getElementById('vp-info');
     if (r.ok) {
-      contactoEncontrado = true;
-      info.innerHTML = 'Contacto registrado: <strong>' + esc(r.datos.nombre) + '</strong><br>Correo: ' + esc(r.datos.correo)
-        + ' · Dirección: ' + esc(r.datos.direccion);
-      info.style.display = 'block';
-      document.getElementById('vp-nuevo').style.display = 'none';
-      ocultarMsg('msg-vn');
-    } else if (r.status === 404) {
-      contactoEncontrado = false;
-      info.style.display = 'none';
-      document.getElementById('vp-nuevo').style.display = 'block';
-      mostrar('msg-vn', false, 'Ese celular no está registrado: complete nombre, correo y dirección');
-    } else {
-      mostrar('msg-vn', false, detalle(r, 'No se pudo buscar el contacto'));
+      info.innerHTML = 'Contacto registrado: <strong>' + esc(r.datos.nombre) + '</strong><br>Celular: ' + esc(r.datos.telefono)
+        + ' · Correo: ' + esc(r.datos.correo) + ' · Dirección: ' + esc(r.datos.direccion);
     }
+    info.style.display = r.ok ? 'block' : 'none';
+    document.getElementById('vp-nuevo').style.display = r.ok ? 'none' : 'block';
   }
 
   function limpiarContacto() {
@@ -1666,33 +1671,56 @@
     document.getElementById('ven-contacto').style.display = 'none';
   }
 
-  document.getElementById('vn-pedido').addEventListener('change', mostrarContacto);
-  document.getElementById('vn-cliente').addEventListener('input', mostrarContacto);
-  document.getElementById('vp-telefono').addEventListener('input', () => {   // otro celular: se vuelve a buscar
+  document.getElementById('vn-pedido').addEventListener('change', verificarCliente);
+  document.getElementById('vn-cliente').addEventListener('input', () => {   // otra cédula: se vuelve a consultar
+    marcarSinRegistro(false);
     contactoEncontrado = false;
     document.getElementById('vp-info').style.display = 'none';
     document.getElementById('vp-nuevo').style.display = 'block';
+    mostrarContacto();
   });
+  document.getElementById('vn-cliente').addEventListener('change', verificarCliente);
+
+  function marcarSinRegistro(valor) {
+    clienteSinRegistro = valor;
+    document.getElementById('vn-aviso').style.display = valor ? 'inline' : 'none';
+  }
+
+  // Avisa si el documento escrito no es de un cliente registrado; no impide seguir con la venta.
+  async function verificarCliente() {
+    const documento = valorDe('vn-cliente');
+    if (!documento) { marcarSinRegistro(false); mostrarContacto(); return; }
+    const r = await llamar('GET', '/api/clientes/' + encodeURIComponent(documento));
+    if (documento !== valorDe('vn-cliente')) return;   // cambió mientras se consultaba
+    marcarSinRegistro(r.status === 404);
+    if (clienteSinRegistro && document.getElementById('vn-pedido').checked) await buscarContacto(documento);
+    mostrarContacto();
+  }
 
   async function iniciarVenta() {
     const cuerpo = {};
+    await verificarCliente();
     const cliente = valorDe('vn-cliente');
     if (cliente) cuerpo.clienteDocumento = cliente;
     if (document.getElementById('vn-pedido').checked) {
       cuerpo.notaPedido = true;
-      // Sin cliente registrado, el pedido es de un contacto: celular y, si es nuevo, nombre, correo y dirección.
-      if (!cliente) {
-        cuerpo.contacto = { telefono: valorDe('vp-telefono') };
-        if (!contactoEncontrado) {
-          cuerpo.contacto.nombre = valorDe('vp-nombre');
-          cuerpo.contacto.correo = valorDe('vp-correo');
-          cuerpo.contacto.direccion = valorDe('vp-direccion');
+      // La cédula es obligatoria. Si no es de un cliente ni de un contacto ya registrado, van sus datos de contacto.
+      if (!cliente) { mostrar('msg-vn', false, 'Escriba la cédula: es obligatoria en una nota de pedido'); return; }
+      if (clienteSinRegistro && !contactoEncontrado) {
+        cuerpo.contacto = {
+          telefono: valorDe('vp-telefono'), nombre: valorDe('vp-nombre'),
+          correo: valorDe('vp-correo'), direccion: valorDe('vp-direccion')
+        };
+        if (Object.values(cuerpo.contacto).some(v => !v)) {
+          mostrar('msg-vn', false, 'Es un contacto nuevo: complete nombre, celular, correo y dirección');
+          return;
         }
       }
     }
     const r = await llamar('POST', '/api/ventas', cuerpo);
     if (!r.ok) { mostrar('msg-vn', false, detalle(r, 'No se pudo iniciar la venta')); return; }
     ocultarMsg('msg-vn');
+    avisoCliente = (r.datos.advertencias || []).join('. ');
     pintarVenta(r.datos);
     document.getElementById('va-codigo').focus();
   }
@@ -1733,7 +1761,8 @@
     const v = actual.datos;
     if (v.lineas.length === 0) { mostrar('msg-vn', false, 'Agregue al menos un producto antes de registrar'); return; }
     const acepto = await confirmar('¿Registrar la venta?', [
-      v.contactoPedido ? 'Contacto de pedido: ' + v.clienteNombre : 'Cliente: ' + v.clienteNombre + ' (' + v.clienteDocumento + ')',
+      'Cliente: ' + v.clienteNombre + ' (' + v.clienteDocumento + ')',
+      ...(v.contactoPedido ? ['Entrega a: ' + v.contactoNombre] : []),
       'Productos: ' + v.lineas.length,
       'Total: ' + dinero.format(v.total),
       'Al registrar se descuenta el stock y la venta ya no se puede modificar'
@@ -1763,6 +1792,8 @@
     document.getElementById('ven-curso').style.display = 'none';
     document.getElementById('ven-inicio').style.display = 'block';
     document.getElementById('vn-cliente').value = '';
+    marcarSinRegistro(false);
+    avisoCliente = '';
     document.getElementById('vn-pedido').checked = false;
     limpiarContacto();
     ocultarMsg('msg-vn');
@@ -1847,6 +1878,72 @@
       </tr>`).join('');
   }
 
+  // RF-032: la factura de una venta registrada o anulada. Se imprime solo esta zona. Una anulada lo dice con su motivo;
+  // el administrador ve, en una registrada, el formulario para anularla (RF-029).
+  function htmlFactura(v) {
+    const filas = v.lineas.map(l => `<tr><td>${l.linea}</td><td>${esc(l.productoCodigo)}</td><td>${esc(l.productoNombre)}</td>
+      <td>${l.cantidad}</td><td>${dinero.format(l.precioUnitario)}</td><td>${dinero.format(l.subtotal)}</td></tr>`).join('');
+    const anulada = v.estado === 'ANULADA';
+    const aviso = anulada
+      ? `<p style="color:#c0392b;font-weight:bold">FACTURA ANULADA el ${esc(new Date(v.fechaAnulacion).toLocaleString('es-CO'))}
+         por ${esc(v.anuladoPor || '')}. Motivo: ${esc(v.motivoAnulacion || '')}</p>` : '';
+    const anular = rolActual === 'ADMIN' && v.estado === 'REGISTRADA'
+      ? `<div class="form-row no-imprimir" style="margin-top:14px">
+           <input id="an-motivo" placeholder="Motivo de la anulación (mínimo 5 caracteres)" maxlength="500" />
+           <button class="btn-danger" data-anular="${escAttr(v.numeroFactura)}">Anular venta</button>
+         </div>` : '';
+    return `<div class="zona-impresion" id="zona-factura" style="margin-top:20px">
+      <h3 style="margin:0 0 8px">Factura ${esc(v.numeroFactura)}</h3>${aviso}
+      <table class="ficha">
+        <tr><th>Estado</th><td>${esc(v.estado)}</td></tr>
+        <tr><th>Fecha</th><td>${esc(new Date(v.fecha).toLocaleString('es-CO'))}</td></tr>
+        <tr><th>Cajero</th><td>${esc(v.cajeroCedula)}</td></tr>
+        <tr><th>Cliente</th><td>${infoCliente(v)}</td></tr>
+      </table>
+      <table style="margin-top:16px"><thead><tr><th>Línea</th><th>Código</th><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="6" style="text-align:center;color:#999">Sin productos</td></tr>'}</tbody></table>
+      <p style="margin:14px 0;font-size:18px;font-weight:bold">Total: ${dinero.format(v.total)}</p>
+      <button class="btn-primary no-imprimir" onclick="imprimirZona('zona-factura')">Imprimir factura</button>
+      ${anular}
+    </div>`;
+  }
+
+  // Imprime solo la zona indicada (la regla @media print oculta el resto de la página).
+  function imprimirZona(id) {
+    const zona = document.getElementById(id);
+    if (!zona) return;
+    const yaMarcada = zona.classList.contains('zona-impresion');
+    zona.classList.add('zona-impresion');
+    document.body.classList.add('imprimiendo');
+    const limpiar = () => {
+      document.body.classList.remove('imprimiendo');
+      if (!yaMarcada) zona.classList.remove('zona-impresion');
+      window.removeEventListener('afterprint', limpiar);
+    };
+    window.addEventListener('afterprint', limpiar);
+    window.print();
+  }
+
+  // RF-029: anular la venta abierta. Pide confirmar; el servidor devuelve el stock y guarda motivo, quién y cuándo.
+  document.getElementById('ficha-venta').addEventListener('click', async e => {
+    const boton = e.target.closest('button[data-anular]');
+    if (!boton) return;
+    const motivo = valorDe('an-motivo');
+    if (motivo.length < 5) { mostrar('msg-vb', false, 'Escriba el motivo de la anulación (mínimo 5 caracteres)'); return; }
+    const factura = boton.dataset.anular;
+    const acepto = await confirmar('¿Anular la venta ' + factura + '?', [
+      'Motivo: ' + motivo,
+      'Se devolverá el stock de todos sus productos.',
+      'Una venta anulada no se puede reactivar ni anular de nuevo.'
+    ], 'Anular venta', 'btn-danger');
+    if (!acepto) return;
+    const r = await llamar('POST', '/api/ventas/' + encodeURIComponent(factura) + '/anular', { motivo });
+    if (!r.ok) { mostrar('msg-vb', false, detalle(r, 'No se pudo anular la venta')); return; }
+    document.getElementById('ficha-venta').innerHTML = htmlFactura(r.datos);
+    mostrar('msg-vb', true, 'Venta ' + factura + ' anulada: el stock se devolvió. Pulse Buscar para actualizar la lista');
+    cargarProductos();
+  });
+
   // RF-030: el detalle de una venta. El botón lleva la factura en data-factura (no en el onclick).
   document.getElementById('tabla-ventas').addEventListener('click', async e => {
     const boton = e.target.closest('button[data-factura]');
@@ -1856,21 +1953,10 @@
     const r = await llamar('GET', '/api/ventas/' + encodeURIComponent(boton.dataset.factura));
     if (!r.ok) { mostrar('msg-vb', false, detalle(r, 'Error al consultar la venta')); return; }
     const v = r.datos;
-    const filas = v.lineas.map(l => `<tr><td>${l.linea}</td><td>${esc(l.productoCodigo)}</td><td>${esc(l.productoNombre)}</td>
-      <td>${l.cantidad}</td><td>${dinero.format(l.precioUnitario)}</td><td>${dinero.format(l.subtotal)}</td></tr>`).join('');
     cerrarDetalleVenta();
     boton.textContent = 'Ocultar';
     boton.dataset.abierta = '1';
-    ficha.innerHTML = `<table class="ficha" style="margin-top:20px">
-      <tr><th>Factura</th><td>${esc(v.numeroFactura)}</td></tr>
-      <tr><th>Estado</th><td>${esc(v.estado)}</td></tr>
-      <tr><th>Fecha</th><td>${esc(new Date(v.fecha).toLocaleString('es-CO'))}</td></tr>
-      <tr><th>Cajero</th><td>${esc(v.cajeroCedula)}</td></tr>
-      <tr><th>Cliente</th><td>${infoCliente(v)}</td></tr>
-      <tr><th>Total</th><td>${dinero.format(v.total)}</td></tr>
-    </table>
-    <table style="margin-top:16px"><thead><tr><th>Línea</th><th>Código</th><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr></thead>
-      <tbody>${filas || '<tr><td colspan="6" style="text-align:center;color:#999">Sin productos</td></tr>'}</tbody></table>`;
+    ficha.innerHTML = htmlFactura(v);
     ficha.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 

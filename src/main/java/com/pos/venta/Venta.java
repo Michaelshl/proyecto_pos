@@ -53,7 +53,7 @@ public class Venta {
     @Column(name = "es_pedido", nullable = false, columnDefinition = "TINYINT(1)")
     private Boolean esPedido = false;
 
-    // Celular del contacto de pedido cuando la nota de pedido es de alguien que no es cliente registrado.
-    @Column(name = "contacto_telefono", length = 20)
-    private String contactoTelefono;
+    // Cédula del contacto de pedido cuando la nota de pedido es de alguien que no es cliente registrado.
+    @Column(name = "contacto_documento", length = 20)
+    private String contactoDocumento;
 }

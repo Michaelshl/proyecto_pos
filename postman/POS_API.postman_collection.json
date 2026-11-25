@@ -828,23 +828,23 @@
         {
           "name": "Nota de pedido de un contacto nuevo (no es cliente registrado)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-            "pm.test('201, de un contacto de pedido', () => { pm.response.to.have.status(201); const j = pm.response.json(); pm.expect(j.contactoPedido).to.eql(true); pm.expect(j.clienteNombre).to.eql('Carlos Pérez'); pm.collectionVariables.set('borradorContacto', j.numeroFactura); });"
+            "pm.test('201, de un contacto de pedido', () => { pm.response.to.have.status(201); const j = pm.response.json(); pm.expect(j.contactoPedido).to.eql(true); pm.expect(j.contactoNombre).to.eql('Carlos Pérez'); pm.expect(j.clienteDocumento).to.eql('222222222222'); pm.collectionVariables.set('borradorContacto', j.numeroFactura); });"
           ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/ventas",
-            "body": { "mode": "raw", "raw": "{\"notaPedido\": true, \"contacto\": {\"telefono\": \"3201112222\", \"nombre\": \"Carlos Pérez\", \"correo\": \"carlos.perez@correo.test\", \"direccion\": \"Carrera 8 # 12-30, Yumbo\"}}" }
+            "body": { "mode": "raw", "raw": "{\"clienteDocumento\": \"40111222\", \"notaPedido\": true, \"contacto\": {\"telefono\": \"3201112222\", \"nombre\": \"Carlos Pérez\", \"correo\": \"carlos.perez@correo.test\", \"direccion\": \"Carrera 8 # 12-30, Yumbo\"}}" }
           }
         },
         {
-          "name": "Consultar el contacto por su celular",
+          "name": "Consultar el contacto por su cédula",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('200 con sus datos', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().nombre).to.eql('Carlos Pérez'); });"
           ] } }],
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/contactos-pedido/3201112222"
+            "url": "{{baseUrl}}/api/contactos-pedido/40111222"
           }
         },
         {
@@ -866,7 +866,7 @@
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/ventas",
-            "body": { "mode": "raw", "raw": "{\"notaPedido\": true, \"contacto\": {\"telefono\": \"3105550000\", \"nombre\": \"Luis\"}}" }
+            "body": { "mode": "raw", "raw": "{\"clienteDocumento\": \"40555000\", \"notaPedido\": true, \"contacto\": {\"telefono\": \"3105550000\", \"nombre\": \"Luis\"}}" }
           }
         },
         {

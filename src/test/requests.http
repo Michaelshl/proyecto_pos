@@ -251,12 +251,13 @@ Authorization: Bearer {{token}}
 GET http://localhost:8081/api/ventas?producto=agua&desde=2026-11-01&hasta=2026-11-30
 Authorization: Bearer {{token}}
 
-### Nota de pedido de alguien que NO es cliente registrado: se guarda como contacto de pedido (celular, nombre, correo y dirección)
+### Nota de pedido de alguien que NO es cliente registrado: la cédula es obligatoria y se guarda como contacto de pedido (la factura sale a Consumidor final)
 POST http://localhost:8081/api/ventas
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
+  "clienteDocumento": "40111222",
   "notaPedido": true,
   "contacto": {
     "telefono": "3201112222",
@@ -266,16 +267,16 @@ Authorization: Bearer {{token}}
   }
 }
 
-### Si el celular ya está registrado basta con el celular: se reutiliza el contacto
+### Si la cédula ya está registrada como contacto basta con la cédula: se reutilizan sus datos
 POST http://localhost:8081/api/ventas
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "notaPedido": true,
-  "contacto": { "telefono": "3201112222" }
+  "clienteDocumento": "40111222",
+  "notaPedido": true
 }
 
-### Consultar un contacto por su celular (el cajero lo recibe con correo y dirección enmascarados)
-GET http://localhost:8081/api/contactos-pedido/3201112222
+### Consultar un contacto por su cédula (el cajero lo recibe con celular, correo y dirección enmascarados)
+GET http://localhost:8081/api/contactos-pedido/40111222
 Authorization: Bearer {{token}}

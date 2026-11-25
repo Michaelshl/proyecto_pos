@@ -14,7 +14,7 @@ public interface VentaRepository extends JpaRepository<Venta, String> {
 
     // Los filtros de la búsqueda de ventas (los borradores nunca aparecen). Todos son opcionales: el texto coincide
     // con el final del número de factura (por ejemplo sus últimos 4 dígitos), con el comienzo del documento del
-    // cliente o con el comienzo del celular de un contacto de pedido; el producto, con su código o con parte de su
+    // cliente o con el comienzo de la cédula de un contacto de pedido; el producto, con su código o con parte de su
     // nombre. La fecha final es exclusiva. Se comparten entre la lista y los totales para que siempre coincidan.
     String FILTROS_DE_BUSQUEDA = """
             v.estado <> 'EN_PROCESO'
@@ -22,7 +22,7 @@ public interface VentaRepository extends JpaRepository<Venta, String> {
               and (:estado is null or v.estado = :estado)
               and (:texto is null or v.numeroFactura like concat('%', :texto)
                                   or v.clienteDocumento like concat(:texto, '%')
-                                  or v.contactoTelefono like concat(:texto, '%'))
+                                  or v.contactoDocumento like concat(:texto, '%'))
               and (:desde is null or v.fecha >= :desde)
               and (:hasta is null or v.fecha < :hasta)
               and (:producto is null or exists (

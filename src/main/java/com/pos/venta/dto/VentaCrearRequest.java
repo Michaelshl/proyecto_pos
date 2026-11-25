@@ -12,8 +12,8 @@ public class VentaCrearRequest {
     @Size(max = 20, message = "El documento del cliente no puede superar 20 caracteres")
     private String clienteDocumento;
 
-    // Nota de pedido: exige un cliente registrado o, si no lo es, un contacto de pedido (celular, nombre, correo y
-    // dirección).
+    // Nota de pedido: la cédula es obligatoria. Si no es de un cliente registrado se usa el contacto de pedido de esa
+    // cédula o, si es nuevo, se crea con celular, nombre, correo y dirección.
     private Boolean notaPedido;
 
     // Solo se usa en una nota de pedido sin cliente registrado.

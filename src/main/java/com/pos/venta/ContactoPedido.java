@@ -6,8 +6,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
-// Contacto de una nota de pedido que NO es un cliente registrado (no tiene documento, por eso no va en `clientes`).
-// La llave es el celular. Se guarda para entregar el pedido y reconocerlo en los próximos.
+// Contacto de una nota de pedido que NO es un cliente registrado: no va en `clientes` porque no es un cliente para
+// facturación. La llave es su cédula. Se guarda para entregar el pedido y reconocerlo en los próximos.
 @Data
 @Entity
 @Table(name = "contactos_pedido")
@@ -15,6 +15,9 @@ public class ContactoPedido {
 
     @Id
     @Column(length = 20)
+    private String documento;
+
+    @Column(length = 20, nullable = false)
     private String telefono;
 
     @Column(length = 150, nullable = false)

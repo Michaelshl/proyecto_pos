@@ -45,6 +45,10 @@ public class VentaService {
     static final String CONSUMIDOR_FINAL_NOMBRE = "Consumidor final";
     static final String CONSUMIDOR_FINAL_DOCUMENTO = "222222222222";
 
+    private static final String FORMATO_CEDULA = "[0-9A-Za-z\\-]{5,20}";
+
+    static final String AVISO_CLIENTE_NO_REGISTRADO = "El cliente no se encuentra registrado";
+
     // La búsqueda muestra como máximo las 200 ventas más recientes (los totales sí cuentan todas), y al cajero no
     // se le permite buscar en un rango de fechas de más de un año.
     static final int MAX_RESULTADOS = 200;
@@ -68,17 +72,26 @@ public class VentaService {
         this.contactoRepository = contactoRepository;
     }
 
-    // RF-025: crea el borrador con su número propio. El cliente es opcional (sin cliente = Consumidor final).
+    // RF-025: crea el borrador con su número propio. El cliente es opcional (sin cliente = Consumidor final). Si el
+    // documento escrito no es de un cliente registrado, la venta sigue como Consumidor final y se avisa; ese
+    // documento no se guarda.
     @Transactional
     public VentaResponse crear(VentaCrearRequest request, String cedulaCajero, boolean esAdmin) {
         String documento = vacioANulo(request.getClienteDocumento());
         boolean esPedido = Boolean.TRUE.equals(request.getNotaPedido());
-        if (documento != null && !clienteRepository.existsById(documento)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El cliente no existe");
+        List<String> advertencias = new ArrayList<>();
+        if (esPedido && documento == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Una nota de pedido necesita la cédula");
         }
-        // Una nota de pedido es de un cliente registrado o, si no lo es, de un contacto de pedido (celular, nombre,
-        // correo y dirección). El contacto no es un cliente para facturación: se guarda aparte.
-        String telefonoContacto = esPedido && documento == null ? contactoDePedido(request.getContacto()) : null;
+        String escrito = documento;
+        if (documento != null && !clienteRepository.existsById(documento)) {
+            advertencias.add(AVISO_CLIENTE_NO_REGISTRADO);
+            documento = null;
+        }
+        // Una nota de pedido de quien no es cliente registrado queda a nombre de un contacto de pedido, identificado por
+        // su cédula. El contacto no es un cliente para facturación: se guarda aparte.
+        String documentoContacto = esPedido && documento == null
+                ? contactoDePedido(escrito, request.getContacto()) : null;
 
         Venta venta = new Venta();
         venta.setNumeroFactura(siguienteNumero(TIPO_BORRADOR, PREFIJO_BORRADOR));
@@ -88,15 +101,15 @@ public class VentaService {
         venta.setCajeroCedula(cedulaCajero);
         venta.setClienteDocumento(documento);
         venta.setEsPedido(esPedido);
-        venta.setContactoTelefono(telefonoContacto);
+        venta.setContactoDocumento(documentoContacto);
         ventaRepository.save(venta);
 
         Auditoria.accion("Venta iniciada", "borrador " + venta.getNumeroFactura()
                 + (documento != null ? ", cliente " + documento
-                : telefonoContacto != null ? ", contacto de pedido " + Enmascarar.telefono(telefonoContacto)
+                : documentoContacto != null ? ", contacto de pedido " + Enmascarar.documento(documentoContacto)
                 : ", consumidor final")
                 + (esPedido ? ", nota de pedido" : ""));
-        return respuesta(venta, List.of(), List.of(), esAdmin);
+        return respuesta(venta, List.of(), advertencias, esAdmin);
     }
 
     // RF-030: el detalle de una venta por su número. El administrador ve cualquiera; el cajero, solo las suyas
@@ -150,15 +163,15 @@ public class VentaService {
                 .map(Venta::getClienteDocumento).filter(d -> d != null).distinct().toList()).stream()
                 .collect(Collectors.toMap(Cliente::getNumeroDocumento, c -> c));
         Map<String, ContactoPedido> contactos = contactoRepository.findAllById(ventas.stream()
-                .map(Venta::getContactoTelefono).filter(t -> t != null).distinct().toList()).stream()
-                .collect(Collectors.toMap(ContactoPedido::getTelefono, c -> c));
+                .map(Venta::getContactoDocumento).filter(d -> d != null).distinct().toList()).stream()
+                .collect(Collectors.toMap(ContactoPedido::getDocumento, c -> c));
         List<VentaResumenResponse> filas = ventas.stream().map(v -> resumen(v, clientes, contactos, esAdmin)).toList();
         return new VentaListaResponse(total, ingresos == null ? BigDecimal.ZERO : ingresos, total > filas.size(), filas);
     }
 
     private VentaResumenResponse resumen(Venta v, Map<String, Cliente> clientes, Map<String, ContactoPedido> contactos,
                                          boolean esAdmin) {
-        boolean contacto = v.getContactoTelefono() != null;
+        boolean contacto = v.getContactoDocumento() != null;
         boolean consumidorFinal = v.getClienteDocumento() == null && !contacto;
         String nombre;
         String documento;
@@ -166,9 +179,9 @@ public class VentaService {
             nombre = CONSUMIDOR_FINAL_NOMBRE;
             documento = CONSUMIDOR_FINAL_DOCUMENTO;
         } else if (contacto) {
-            ContactoPedido c = contactos.get(v.getContactoTelefono());
+            ContactoPedido c = contactos.get(v.getContactoDocumento());
             nombre = esAdmin && c != null ? c.getNombre() : null;
-            documento = esAdmin ? v.getContactoTelefono() : Enmascarar.telefono(v.getContactoTelefono());
+            documento = esAdmin ? v.getContactoDocumento() : Enmascarar.documento(v.getContactoDocumento());
         } else {
             Cliente c = clientes.get(v.getClienteDocumento());
             nombre = esAdmin && c != null ? nombreCompleto(c) : null;
@@ -188,14 +201,15 @@ public class VentaService {
                 .build();
     }
 
-    // Consulta un contacto de pedido por su celular (el cajero lo escribe, así que lo conoce). El cajero recibe el
-    // correo y la dirección enmascarados; el administrador, completos.
+    // Consulta un contacto de pedido por su cédula (el cajero la escribe, así que la conoce). El cajero recibe el
+    // celular, el correo y la dirección enmascarados; el administrador, completos.
     @Transactional(readOnly = true)
-    public ContactoPedidoResponse consultarContacto(String telefono, boolean esAdmin) {
-        ContactoPedido c = contactoRepository.findById(telefono.trim())
+    public ContactoPedidoResponse consultarContacto(String documento, boolean esAdmin) {
+        ContactoPedido c = contactoRepository.findById(documento.trim())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No hay un contacto de pedido con ese celular"));
-        return new ContactoPedidoResponse(c.getTelefono(), c.getNombre(),
+                        "No hay un contacto de pedido con esa cédula"));
+        return new ContactoPedidoResponse(c.getDocumento(),
+                esAdmin ? c.getTelefono() : Enmascarar.telefono(c.getTelefono()), c.getNombre(),
                 esAdmin ? c.getCorreo() : Enmascarar.correo(c.getCorreo()),
                 esAdmin ? c.getDireccion() : Enmascarar.direccion(c.getDireccion()));
     }
@@ -312,7 +326,7 @@ public class VentaService {
         venta.setCajeroCedula(borrador.getCajeroCedula());
         venta.setClienteDocumento(borrador.getClienteDocumento());
         venta.setEsPedido(borrador.getEsPedido());
-        venta.setContactoTelefono(borrador.getContactoTelefono());
+        venta.setContactoDocumento(borrador.getContactoDocumento());
         ventaRepository.save(venta);
 
         List<DetalleVenta> definitivas = new ArrayList<>();
@@ -329,6 +343,56 @@ public class VentaService {
         Auditoria.accion("Venta registrada", "factura " + venta.getNumeroFactura() + ", total " + venta.getTotal()
                 + ", " + definitivas.size() + " línea(s)");
         return respuesta(venta, definitivas, List.of(), esAdmin);
+    }
+
+    // RF-029: anula una venta registrada (solo el administrador; lo exige SecurityConfig). Guarda el motivo, quién y
+    // cuándo, y devuelve el stock de cada producto. Una venta anulada no se puede anular de nuevo ni reactivar. La
+    // anulación y la devolución del stock van en una sola transacción: si algo falla, no cambia nada.
+    @Transactional
+    public VentaResponse anular(String numero, String motivo, String cedulaAdmin) {
+        Venta venta = obtener(numero);
+        if (EstadoVenta.ANULADA.equals(venta.getEstado())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La venta " + venta.getNumeroFactura() + " ya está anulada");
+        }
+        if (!EstadoVenta.REGISTRADA.equals(venta.getEstado())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Solo se anula una venta registrada; un borrador se cancela");
+        }
+        String razon = vacioANulo(motivo);
+        if (razon == null || razon.length() < 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El motivo debe tener al menos 5 caracteres");
+        }
+
+        List<DetalleVenta> lineas = detalleRepository.findByIdNumeroFacturaOrderByIdLinea(venta.getNumeroFactura());
+        for (DetalleVenta linea : lineas) {
+            Producto producto = productoRepository.findById(linea.getProductoCodigo())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "Producto " + linea.getProductoCodigo() + " no encontrado"));
+            producto.setStock(producto.getStock() + linea.getCantidad());
+            productoRepository.save(producto);
+        }
+        venta.setEstado(EstadoVenta.ANULADA);
+        venta.setMotivoAnulacion(razon);
+        venta.setFechaAnulacion(LocalDateTime.now());
+        venta.setAnuladoPor(cedulaAdmin);
+        ventaRepository.save(venta);
+
+        Auditoria.alerta("Venta anulada", "factura " + venta.getNumeroFactura() + ", total " + venta.getTotal()
+                + ", stock devuelto de " + lineas.size() + " línea(s), motivo: " + Auditoria.limpiar(razon));
+        return respuesta(venta, lineas, List.of(), true);
+    }
+
+    // RF-032: la factura de una venta registrada o anulada (una anulada se marca como tal). Un borrador todavía no
+    // tiene factura. Mismas reglas de acceso y de enmascarado que consultar.
+    @Transactional(readOnly = true)
+    public VentaResponse factura(String numero, String cedulaUsuario, boolean esAdmin) {
+        Venta venta = obtener(numero);
+        if (EstadoVenta.EN_PROCESO.equals(venta.getEstado())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Un borrador todavía no tiene factura: debe registrarse primero");
+        }
+        return consultar(numero, cedulaUsuario, esAdmin);
     }
 
     // Borra los borradores creados antes del límite: los que nadie terminó (se cerró la pantalla, se cayó la
@@ -404,18 +468,19 @@ public class VentaService {
 
         Optional<Cliente> cliente = venta.getClienteDocumento() == null ? Optional.empty()
                 : clienteRepository.findById(venta.getClienteDocumento());
-        Optional<ContactoPedido> contacto = venta.getContactoTelefono() == null ? Optional.empty()
-                : contactoRepository.findById(venta.getContactoTelefono());
-        boolean esContacto = venta.getContactoTelefono() != null;
-        boolean consumidorFinal = venta.getClienteDocumento() == null && !esContacto;
+        Optional<ContactoPedido> contacto = venta.getContactoDocumento() == null ? Optional.empty()
+                : contactoRepository.findById(venta.getContactoDocumento());
+        boolean esContacto = venta.getContactoDocumento() != null;
+        // La factura de un contacto de pedido sale a Consumidor final: sus datos solo son los de la entrega.
+        boolean consumidorFinal = venta.getClienteDocumento() == null;
         boolean pedido = Boolean.TRUE.equals(venta.getEsPedido());
 
         // Los datos de contacto son los del cliente registrado o, en una nota de pedido sin cliente, los del contacto.
         String nombre = consumidorFinal ? CONSUMIDOR_FINAL_NOMBRE
-                : esContacto ? contacto.map(ContactoPedido::getNombre).orElse(null)
                 : cliente.map(VentaService::nombreCompleto).orElse(null);
         String correo = cliente.map(Cliente::getEmail).orElseGet(() -> contacto.map(ContactoPedido::getCorreo).orElse(null));
-        String telefono = esContacto ? venta.getContactoTelefono() : cliente.map(Cliente::getTelefono).orElse(null);
+        String telefono = esContacto ? contacto.map(ContactoPedido::getTelefono).orElse(null)
+                : cliente.map(Cliente::getTelefono).orElse(null);
         String direccion = cliente.map(Cliente::getDireccion)
                 .orElseGet(() -> contacto.map(ContactoPedido::getDireccion).orElse(null));
 
@@ -433,38 +498,45 @@ public class VentaService {
                 .clienteTelefono(pedido ? (esAdmin ? telefono : Enmascarar.telefono(telefono)) : null)
                 .clienteDireccion(pedido ? (esAdmin ? direccion : Enmascarar.direccion(direccion)) : null)
                 .contactoPedido(esContacto)
+                .contactoNombre(contacto.map(ContactoPedido::getNombre).orElse(null))
+                .contactoDocumento(!esContacto ? null : esAdmin ? venta.getContactoDocumento()
+                        : Enmascarar.documento(venta.getContactoDocumento()))
                 .motivoAnulacion(venta.getMotivoAnulacion())
+                .fechaAnulacion(venta.getFechaAnulacion())
+                .anuladoPor(venta.getAnuladoPor())
                 .lineas(lineasRespuesta)
                 .advertencias(advertencias)
                 .build();
     }
 
-    // El contacto de una nota de pedido sin cliente registrado. Si el celular ya está guardado se usa ese contacto;
-    // si es nuevo se exigen nombre, correo y dirección y se guarda para los próximos pedidos. No es un cliente.
-    private String contactoDePedido(ContactoPedidoRequest contacto) {
+    // El contacto de una nota de pedido sin cliente registrado, identificado por su cédula. Si ya está guardado se usa
+    // ese contacto; si es nuevo se exigen celular, nombre, correo y dirección y se guarda para los próximos pedidos.
+    // No es un cliente.
+    private String contactoDePedido(String documento, ContactoPedidoRequest contacto) {
+        if (!documento.matches(FORMATO_CEDULA)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La cédula debe tener entre 5 y 20 caracteres (números, letras o guion)");
+        }
+        if (contactoRepository.existsById(documento)) {
+            return documento;
+        }
         String telefono = contacto == null ? null : vacioANulo(contacto.getTelefono());
-        if (telefono == null) {
+        String nombre = contacto == null ? null : vacioANulo(contacto.getNombre());
+        String correo = contacto == null ? null : vacioANulo(contacto.getCorreo());
+        String direccion = contacto == null ? null : vacioANulo(contacto.getDireccion());
+        if (telefono == null || nombre == null || correo == null || direccion == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Una nota de pedido necesita un cliente registrado o el celular del contacto");
-        }
-        if (contactoRepository.existsById(telefono)) {
-            return telefono;
-        }
-        String nombre = vacioANulo(contacto.getNombre());
-        String correo = vacioANulo(contacto.getCorreo());
-        String direccion = vacioANulo(contacto.getDireccion());
-        if (nombre == null || correo == null || direccion == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Es un contacto nuevo: el nombre, el correo y la dirección son obligatorios");
+                    "Es un contacto nuevo: el celular, el nombre, el correo y la dirección son obligatorios");
         }
         ContactoPedido nuevo = new ContactoPedido();
+        nuevo.setDocumento(documento);
         nuevo.setTelefono(telefono);
         nuevo.setNombre(nombre);
         nuevo.setCorreo(correo);
         nuevo.setDireccion(direccion);
         contactoRepository.save(nuevo);
-        Auditoria.accion("Contacto de pedido registrado", "celular " + Enmascarar.telefono(telefono));
-        return telefono;
+        Auditoria.accion("Contacto de pedido registrado", "cédula " + Enmascarar.documento(documento));
+        return documento;
     }
 
     // Una persona tiene nombre y apellido; una empresa (NIT) solo razón social, guardada en "nombre".

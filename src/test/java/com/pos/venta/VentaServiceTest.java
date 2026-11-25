@@ -101,9 +101,10 @@ class VentaServiceTest {
         return c;
     }
 
-    private ContactoPedido contacto(String telefono) {
+    private ContactoPedido contacto(String documento) {
         ContactoPedido c = new ContactoPedido();
-        c.setTelefono(telefono);
+        c.setDocumento(documento);
+        c.setTelefono("3201112222");
         c.setNombre("Carlos Pérez");
         c.setCorreo("carlos.perez@correo.test");
         c.setDireccion("Carrera 8 # 12-30, Yumbo");
@@ -174,21 +175,38 @@ class VentaServiceTest {
     }
 
     @Test
-    void crearConClienteInexistenteDa400SinGastarUnNumero() {
+    void conUnClienteNoRegistradoLaVentaSigueComoConsumidorFinalYAvisa() {
+        when(clienteRepository.existsById("999")).thenReturn(false);
+        when(consecutivoRepository.bloquear("BORRADOR")).thenReturn(Optional.of(consecutivo("BORRADOR", 0)));
+        VentaCrearRequest request = new VentaCrearRequest();
+        request.setClienteDocumento("999");
+
+        VentaResponse r = service.crear(request, "1001", false);
+
+        assertTrue(r.getConsumidorFinal());
+        assertEquals("222222222222", r.getClienteDocumento());
+        assertEquals(List.of("El cliente no se encuentra registrado"), r.getAdvertencias());
+        ArgumentCaptor<Venta> guardada = ArgumentCaptor.forClass(Venta.class);
+        verify(ventaRepository).save(guardada.capture());
+        assertNull(guardada.getValue().getClienteDocumento());
+    }
+
+    @Test
+    void unaNotaDePedidoConClienteNoRegistradoSigueExigiendoElContacto() {
         when(clienteRepository.existsById("999")).thenReturn(false);
         VentaCrearRequest request = new VentaCrearRequest();
         request.setClienteDocumento("999");
+        request.setNotaPedido(true);
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
                 () -> service.crear(request, "1001", false));
 
         assertEquals(400, estado(e));
-        verifyNoInteractions(consecutivoRepository);
         verify(ventaRepository, never()).save(any());
     }
 
     @Test
-    void unaNotaDePedidoSinClienteRegistradoDa400() {
+    void unaNotaDePedidoSinCedulaDa400() {
         VentaCrearRequest request = new VentaCrearRequest();
         request.setNotaPedido(true);
 
@@ -218,29 +236,39 @@ class VentaServiceTest {
 
     // ---- nota de pedido de un contacto (no es cliente registrado) ----
 
-    @Test
-    void unContactoNuevoSeGuardaConSusDatosYLaVentaApuntaASuCelular() {
-        when(contactoRepository.existsById("3201112222")).thenReturn(false);
-        when(consecutivoRepository.bloquear("BORRADOR")).thenReturn(Optional.of(consecutivo("BORRADOR", 0)));
+    private VentaCrearRequest notaDeContacto(String cedula, ContactoPedidoRequest datos) {
         VentaCrearRequest request = new VentaCrearRequest();
+        request.setClienteDocumento(cedula);
         request.setNotaPedido(true);
-        request.setContacto(datosDeContacto(" 3201112222 ", "Carlos Pérez", "carlos.perez@correo.test", "Carrera 8 # 12-30, Yumbo"));
-        when(contactoRepository.findById("3201112222")).thenReturn(Optional.of(contacto("3201112222")));
+        request.setContacto(datos);
+        return request;
+    }
 
-        VentaResponse r = service.crear(request, "1001", false);
+    @Test
+    void unContactoNuevoSeGuardaConSuCedulaYSeFacturaAConsumidorFinal() {
+        when(contactoRepository.existsById("40111222")).thenReturn(false);
+        when(consecutivoRepository.bloquear("BORRADOR")).thenReturn(Optional.of(consecutivo("BORRADOR", 0)));
+        when(contactoRepository.findById("40111222")).thenReturn(Optional.of(contacto("40111222")));
+
+        VentaResponse r = service.crear(notaDeContacto(" 40111222 ", datosDeContacto(" 3201112222 ", "Carlos Pérez",
+                "carlos.perez@correo.test", "Carrera 8 # 12-30, Yumbo")), "1001", false);
 
         ArgumentCaptor<ContactoPedido> guardado = ArgumentCaptor.forClass(ContactoPedido.class);
         verify(contactoRepository).save(guardado.capture());
+        assertEquals("40111222", guardado.getValue().getDocumento());
         assertEquals("3201112222", guardado.getValue().getTelefono());
         assertEquals("Carlos Pérez", guardado.getValue().getNombre());
         ArgumentCaptor<Venta> venta = ArgumentCaptor.forClass(Venta.class);
         verify(ventaRepository).save(venta.capture());
-        assertEquals("3201112222", venta.getValue().getContactoTelefono());
+        assertEquals("40111222", venta.getValue().getContactoDocumento());
         assertNull(venta.getValue().getClienteDocumento());
-        // El cajero ve los datos del contacto enmascarados.
+        // La factura es de Consumidor final; los datos de entrega van aparte y enmascarados para el cajero.
         assertTrue(r.getContactoPedido());
-        assertFalse(r.getConsumidorFinal());
-        assertEquals("Carlos Pérez", r.getClienteNombre());
+        assertTrue(r.getConsumidorFinal());
+        assertEquals("Consumidor final", r.getClienteNombre());
+        assertEquals("222222222222", r.getClienteDocumento());
+        assertEquals("Carlos Pérez", r.getContactoNombre());
+        assertEquals("40******22", r.getContactoDocumento());
         assertEquals("ca****ez@correo.test", r.getClienteCorreo());
         assertEquals("320*******", r.getClienteTelefono());
         assertEquals("Carrera***", r.getClienteDireccion());
@@ -248,25 +276,31 @@ class VentaServiceTest {
 
     @Test
     void unContactoYaRegistradoSeReutilizaSinPedirSusDatos() {
-        when(contactoRepository.existsById("3201112222")).thenReturn(true);
-        when(contactoRepository.findById("3201112222")).thenReturn(Optional.of(contacto("3201112222")));
+        when(contactoRepository.existsById("40111222")).thenReturn(true);
+        when(contactoRepository.findById("40111222")).thenReturn(Optional.of(contacto("40111222")));
         when(consecutivoRepository.bloquear("BORRADOR")).thenReturn(Optional.of(consecutivo("BORRADOR", 0)));
-        VentaCrearRequest request = new VentaCrearRequest();
-        request.setNotaPedido(true);
-        request.setContacto(datosDeContacto("3201112222", null, null, null));
 
-        VentaResponse r = service.crear(request, "1001", false);
+        VentaResponse r = service.crear(notaDeContacto("40111222", null), "1001", false);
 
         verify(contactoRepository, never()).save(any());
-        assertEquals("Carlos Pérez", r.getClienteNombre());
+        assertEquals("Carlos Pérez", r.getContactoNombre());
+    }
+
+    @Test
+    void unaCedulaMalEscritaEnUnaNotaDePedidoDa400() {
+        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+                () -> service.crear(notaDeContacto("12", null), "1001", false));
+
+        assertEquals(400, estado(e));
+        verify(contactoRepository, never()).save(any());
+        verifyNoInteractions(consecutivoRepository);
     }
 
     @Test
     void unContactoNuevoIncompletoDa400SinGuardarNiGastarNumero() {
-        when(contactoRepository.existsById("3201112222")).thenReturn(false);
-        VentaCrearRequest request = new VentaCrearRequest();
-        request.setNotaPedido(true);
-        request.setContacto(datosDeContacto("3201112222", "Carlos", "  ", "Calle 1"));   // falta el correo
+        when(contactoRepository.existsById("40111222")).thenReturn(false);
+        VentaCrearRequest request = notaDeContacto("40111222",
+                datosDeContacto("3201112222", "Carlos", "  ", "Calle 1"));   // falta el correo
 
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
                 () -> service.crear(request, "1001", false));
@@ -294,15 +328,17 @@ class VentaServiceTest {
     }
 
     @Test
-    void elCajeroConsultaUnContactoConCorreoYDireccionEnmascaradosYElAdminCompletos() {
-        when(contactoRepository.findById("3201112222")).thenReturn(Optional.of(contacto("3201112222")));
+    void elCajeroConsultaUnContactoConSusDatosEnmascaradosYElAdminCompletos() {
+        when(contactoRepository.findById("40111222")).thenReturn(Optional.of(contacto("40111222")));
 
-        ContactoPedidoResponse cajero = service.consultarContacto("3201112222", false);
+        ContactoPedidoResponse cajero = service.consultarContacto("40111222", false);
         assertEquals("Carlos Pérez", cajero.getNombre());
+        assertEquals("320*******", cajero.getTelefono());
         assertEquals("ca****ez@correo.test", cajero.getCorreo());
         assertEquals("Carrera***", cajero.getDireccion());
 
-        ContactoPedidoResponse admin = service.consultarContacto("3201112222", true);
+        ContactoPedidoResponse admin = service.consultarContacto("40111222", true);
+        assertEquals("3201112222", admin.getTelefono());
         assertEquals("carlos.perez@correo.test", admin.getCorreo());
         assertEquals("Carrera 8 # 12-30, Yumbo", admin.getDireccion());
     }
@@ -776,19 +812,19 @@ class VentaServiceTest {
     void unaNotaDePedidoDeUnContactoSeMuestraEnmascaradaAlCajero() {
         Venta v = registrada("F-000004", "1001", "9000.00", "REGISTRADA");
         v.setEsPedido(true);
-        v.setContactoTelefono("3201112222");
+        v.setContactoDocumento("40111222");
         when(ventaRepository.contar(any(), any(), any(), any(), any(), any())).thenReturn(1L);
         when(ventaRepository.buscar(any(), any(), any(), any(), any(), any(), any(Pageable.class))).thenReturn(List.of(v));
-        when(contactoRepository.findAllById(any())).thenReturn(List.of(contacto("3201112222")));
+        when(contactoRepository.findAllById(any())).thenReturn(List.of(contacto("40111222")));
 
         var cajero = service.buscar(null, null, null, null, null, null, "1001", false).getVentas().get(0);
         assertTrue(cajero.getContactoPedido());
         assertNull(cajero.getClienteNombre());
-        assertEquals("320*******", cajero.getClienteDocumento());
+        assertEquals("40******22", cajero.getClienteDocumento());
 
         var admin = service.buscar(null, null, null, null, null, null, "1001", true).getVentas().get(0);
         assertEquals("Carlos Pérez", admin.getClienteNombre());
-        assertEquals("3201112222", admin.getClienteDocumento());
+        assertEquals("40111222", admin.getClienteDocumento());
     }
 
     // ---- limpiar borradores ----
@@ -804,5 +840,92 @@ class VentaServiceTest {
         InOrder orden = inOrder(detalleRepository, ventaRepository);
         orden.verify(detalleRepository).borrarLineasDeBorradoresAnterioresA(limite);
         orden.verify(ventaRepository).borrarBorradoresAnterioresA(limite);
+    }
+
+    // ---- RF-029 anular y RF-032 factura ----
+
+    private void prepararVentaRegistrada() {
+        Venta v = venta("F-000001", "REGISTRADA", "1001");
+        v.setTotal(new BigDecimal("11000"));
+        when(ventaRepository.findById("F-000001")).thenReturn(Optional.of(v));
+        when(detalleRepository.findByIdNumeroFacturaOrderByIdLinea("F-000001")).thenReturn(List.of(
+                linea("F-000001", 1, "0001", 2, "5500")));
+    }
+
+    @Test
+    void anularDevuelveElStockYGuardaMotivoFechaYQuienLaAnulo() {
+        prepararVentaRegistrada();
+        Producto p = producto("0001", 8, true, "5500");
+        when(productoRepository.findById("0001")).thenReturn(Optional.of(p));
+
+        VentaResponse r = service.anular("F-000001", "  Error del cajero  ", "9000");
+
+        assertEquals(10, p.getStock());
+        assertEquals("ANULADA", r.getEstado());
+        assertEquals("Error del cajero", r.getMotivoAnulacion());
+        assertEquals("9000", r.getAnuladoPor());
+        assertNotNull(r.getFechaAnulacion());
+        verify(productoRepository).save(p);
+    }
+
+    @Test
+    void anularUnaVentaYaAnuladaDa400SinTocarElStock() {
+        Venta v = venta("F-000001", "ANULADA", "1001");
+        when(ventaRepository.findById("F-000001")).thenReturn(Optional.of(v));
+
+        var e = assertThrows(ResponseStatusException.class, () -> service.anular("F-000001", "Otro motivo", "9000"));
+
+        assertEquals(400, estado(e));
+        verify(productoRepository, never()).save(any());
+    }
+
+    @Test
+    void anularUnBorradorDa400() {
+        when(ventaRepository.findById("B-000001")).thenReturn(Optional.of(borrador("1001")));
+
+        var e = assertThrows(ResponseStatusException.class, () -> service.anular("B-000001", "Motivo valido", "9000"));
+
+        assertEquals(400, estado(e));
+    }
+
+    @Test
+    void anularConMotivoCortoDa400SinTocarElStock() {
+        when(ventaRepository.findById("F-000001")).thenReturn(Optional.of(venta("F-000001", "REGISTRADA", "1001")));
+
+        var e = assertThrows(ResponseStatusException.class, () -> service.anular("F-000001", "  ab ", "9000"));
+
+        assertEquals(400, estado(e));
+        verify(productoRepository, never()).save(any());
+    }
+
+    @Test
+    void anularUnaVentaInexistenteDa404() {
+        when(ventaRepository.findById("F-999999")).thenReturn(Optional.empty());
+
+        var e = assertThrows(ResponseStatusException.class, () -> service.anular("F-999999", "Motivo valido", "9000"));
+
+        assertEquals(404, estado(e));
+    }
+
+    @Test
+    void laFacturaDeUnBorradorDa400() {
+        when(ventaRepository.findById("B-000001")).thenReturn(Optional.of(borrador("1001")));
+
+        var e = assertThrows(ResponseStatusException.class, () -> service.factura("B-000001", "1001", false));
+
+        assertEquals(400, estado(e));
+    }
+
+    @Test
+    void laFacturaDeUnaVentaRegistradaTraeLineasYTotalYElCajeroAjenoNoLaVe() {
+        prepararVentaRegistrada();
+        when(productoRepository.findAllById(any())).thenReturn(List.of(producto("0001", 8, true, "5500")));
+
+        VentaResponse r = service.factura("F-000001", "1001", false);
+        assertEquals(1, r.getLineas().size());
+        assertEquals(new BigDecimal("11000"), r.getTotal());
+
+        var e = assertThrows(ResponseStatusException.class, () -> service.factura("F-000001", "2002", false));
+        assertEquals(404, estado(e));
     }
 }

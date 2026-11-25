@@ -25,10 +25,16 @@ public class VentaResponse {
     // Solo en una nota de pedido (y también enmascarados para el cajero).
     private String clienteTelefono;
     private String clienteDireccion;
-    // Nota de pedido de alguien que no es cliente registrado: sus datos son los del contacto de pedido
-    // (clienteNombre, clienteCorreo, clienteTelefono y clienteDireccion, con la misma máscara para el cajero).
+    // Nota de pedido de alguien que no es cliente registrado: se factura a Consumidor final y aparte van los datos de
+    // entrega (contactoNombre, contactoDocumento y clienteCorreo, clienteTelefono y clienteDireccion). El cajero ve
+    // la cédula, el correo, el teléfono y la dirección enmascarados.
     private Boolean contactoPedido;
+    private String contactoNombre;
+    private String contactoDocumento;
     private String motivoAnulacion;
+    // Solo en una venta anulada: cuándo y quién (cédula del administrador).
+    private LocalDateTime fechaAnulacion;
+    private String anuladoPor;
     private List<LineaVentaResponse> lineas;
     // Avisos que no impiden la operación (por ejemplo, stock insuficiente al agregar un producto, RF-026).
     private List<String> advertencias;

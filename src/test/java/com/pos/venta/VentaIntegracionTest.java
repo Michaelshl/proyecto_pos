@@ -246,13 +246,16 @@ class VentaIntegracionTest {
     }
 
     @Test
-    void unaNotaDePedidoNecesitaUnClienteRegistradoYElClienteDebeExistir() throws Exception {
+    void unaNotaDePedidoSinDatosFallaPeroUnClienteNoRegistradoNoImpideVender() throws Exception {
         mockMvc.perform(post("/api/ventas").with(CAJERO).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"notaPedido\":true}"))
                 .andExpect(status().isBadRequest());
         mockMvc.perform(post("/api/ventas").with(CAJERO).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"clienteDocumento\":\"NO-EXISTE\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.consumidorFinal").value(true))
+                .andExpect(jsonPath("$.clienteDocumento").value("222222222222"))
+                .andExpect(jsonPath("$.advertencias[0]").value("El cliente no se encuentra registrado"));
     }
 
     @Test
@@ -288,7 +291,7 @@ class VentaIntegracionTest {
 
     // ---- nota de pedido de un contacto (no es cliente registrado) ----
 
-    private static final String CONTACTO_NUEVO = "{\"notaPedido\":true,\"contacto\":{\"telefono\":\"3201112222\","
+    private static final String CONTACTO_NUEVO = "{\"clienteDocumento\":\"40111222\",\"notaPedido\":true,\"contacto\":{\"telefono\":\"3201112222\","
             + "\"nombre\":\"Carlos Pérez\",\"correo\":\"carlos.perez@correo.test\",\"direccion\":\"Carrera 8 # 12-30, Yumbo\"}}";
 
     @Test
@@ -300,8 +303,11 @@ class VentaIntegracionTest {
         String borrador = crearBorrador(CAJERO, CONTACTO_NUEVO);
         mockMvc.perform(get("/api/ventas/" + borrador).with(CAJERO))
                 .andExpect(jsonPath("$.contactoPedido").value(true))
-                .andExpect(jsonPath("$.consumidorFinal").value(false))
-                .andExpect(jsonPath("$.clienteNombre").value("Carlos Pérez"))
+                .andExpect(jsonPath("$.consumidorFinal").value(true))
+                .andExpect(jsonPath("$.clienteNombre").value("Consumidor final"))
+                .andExpect(jsonPath("$.clienteDocumento").value("222222222222"))
+                .andExpect(jsonPath("$.contactoNombre").value("Carlos Pérez"))
+                .andExpect(jsonPath("$.contactoDocumento").value("40******22"))
                 .andExpect(jsonPath("$.clienteCorreo").value("ca****ez@correo.test"))
                 .andExpect(jsonPath("$.clienteTelefono").value("320*******"))
                 .andExpect(jsonPath("$.clienteDireccion").value("Carrera***"));
@@ -313,43 +319,44 @@ class VentaIntegracionTest {
         String factura = registrar(borrador, CAJERO);
         mockMvc.perform(get("/api/ventas/" + factura).with(CAJERO))
                 .andExpect(jsonPath("$.contactoPedido").value(true))
-                .andExpect(jsonPath("$.clienteNombre").value("Carlos Pérez"));
+                .andExpect(jsonPath("$.clienteDocumento").value("222222222222"))
+                .andExpect(jsonPath("$.contactoNombre").value("Carlos Pérez"));
 
-        // El contacto queda guardado: el cajero lo consulta por su celular (enmascarado) y el admin completo.
-        mockMvc.perform(get("/api/contactos-pedido/3201112222").with(CAJERO))
+        // El contacto queda guardado: el cajero lo consulta por su cédula (enmascarado) y el admin completo.
+        mockMvc.perform(get("/api/contactos-pedido/40111222").with(CAJERO))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Carlos Pérez"))
                 .andExpect(jsonPath("$.correo").value("ca****ez@correo.test"))
                 .andExpect(jsonPath("$.direccion").value("Carrera***"));
-        mockMvc.perform(get("/api/contactos-pedido/3201112222").with(ADMIN))
+        mockMvc.perform(get("/api/contactos-pedido/40111222").with(ADMIN))
                 .andExpect(jsonPath("$.correo").value("carlos.perez@correo.test"));
         mockMvc.perform(get("/api/contactos-pedido/3999999999").with(CAJERO)).andExpect(status().isNotFound());
 
-        // Segundo pedido: basta el celular, se reutiliza el contacto.
-        crearBorrador(CAJERO, "{\"notaPedido\":true,\"contacto\":{\"telefono\":\"3201112222\"}}");
+        // Segundo pedido: basta la cédula, se reutiliza el contacto.
+        crearBorrador(CAJERO, "{\"clienteDocumento\":\"40111222\",\"notaPedido\":true}");
 
-        // Se puede buscar por el celular: el cajero ve el celular enmascarado y no el nombre; el admin, todo.
-        mockMvc.perform(get("/api/ventas").with(CAJERO).param("texto", "3201112222"))
+        // Se puede buscar por la cédula: el cajero la ve enmascarada y sin el nombre; el admin, todo.
+        mockMvc.perform(get("/api/ventas").with(CAJERO).param("texto", "40111222"))
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.ventas[0].contactoPedido").value(true))
-                .andExpect(jsonPath("$.ventas[0].clienteDocumento").value("320*******"))
+                .andExpect(jsonPath("$.ventas[0].clienteDocumento").value("40******22"))
                 .andExpect(jsonPath("$.ventas[0].clienteNombre").doesNotExist());
-        mockMvc.perform(get("/api/ventas").with(ADMIN).param("texto", "3201112222"))
+        mockMvc.perform(get("/api/ventas").with(ADMIN).param("texto", "40111222"))
                 .andExpect(jsonPath("$.ventas[0].clienteNombre").value("Carlos Pérez"))
-                .andExpect(jsonPath("$.ventas[0].clienteDocumento").value("3201112222"));
+                .andExpect(jsonPath("$.ventas[0].clienteDocumento").value("40111222"));
     }
 
     @Test
     void unContactoNuevoIncompletoYUnaNotaDePedidoSinNingunDatoDan400() throws Exception {
         mockMvc.perform(post("/api/ventas").with(CAJERO).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"notaPedido\":true,\"contacto\":{\"telefono\":\"3105550000\",\"nombre\":\"Luis\"}}"))
+                        .content("{\"clienteDocumento\":\"40555000\",\"notaPedido\":true,\"contacto\":{\"telefono\":\"3105550000\",\"nombre\":\"Luis\"}}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(containsString("obligatorios")));
         mockMvc.perform(post("/api/ventas").with(CAJERO).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"notaPedido\":true,\"contacto\":{\"telefono\":\"abc\"}}"))
                 .andExpect(status().isBadRequest());
         // El contacto que no se pudo crear no quedó guardado.
-        mockMvc.perform(get("/api/contactos-pedido/3105550000").with(CAJERO)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/contactos-pedido/40555000").with(CAJERO)).andExpect(status().isNotFound());
     }
 
     // ---- buscar ----
@@ -491,5 +498,76 @@ class VentaIntegracionTest {
         ventaService.limpiarBorradores(LocalDateTime.now().minusMinutes(30));
 
         mockMvc.perform(get("/api/ventas/" + reciente).with(CAJERO)).andExpect(status().isOk());
+    }
+
+    // ---- RF-029 anular y RF-032 factura ----
+
+    private void anular(String factura, RequestPostProcessor usuario, String cuerpo, int esperado) throws Exception {
+        mockMvc.perform(post("/api/ventas/" + factura + "/anular").with(usuario)
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().is(esperado));
+    }
+
+    @Test
+    void soloElAdministradorAnulaYSeDevuelveElStockUnaSolaVez() throws Exception {
+        prepararCatalogo();
+        crearProducto("0007201", 10, "2000");
+        String borrador = crearBorrador(CAJERO);
+        agregar(borrador, CAJERO, "0007201", 4, 200);
+        String factura = registrar(borrador, CAJERO);
+        assertEquals(6, stockDe("0007201"));
+
+        anular(factura, CAJERO, "{\"motivo\":\"Cliente se arrepintio\"}", 403);   // el cajero no anula
+        assertEquals(6, stockDe("0007201"));
+        anular(factura, ADMIN, "{\"motivo\":\"abc\"}", 400);                      // motivo muy corto
+        anular(factura, ADMIN, "{}", 400);                                           // sin motivo
+        assertEquals(6, stockDe("0007201"));
+
+        mockMvc.perform(post("/api/ventas/" + factura + "/anular").with(ADMIN)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"motivo\":\"Cliente se arrepintio\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("ANULADA"))
+                .andExpect(jsonPath("$.motivoAnulacion").value("Cliente se arrepintio"))
+                .andExpect(jsonPath("$.anuladoPor").value("admin"))
+                .andExpect(jsonPath("$.fechaAnulacion").exists());
+        assertEquals(10, stockDe("0007201"));
+
+        anular(factura, ADMIN, "{\"motivo\":\"Otra vez por favor\"}", 400);      // no se anula dos veces
+        assertEquals(10, stockDe("0007201"));
+
+        mockMvc.perform(get("/api/ventas").param("estado", "ANULADA").with(ADMIN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ventas[?(@.numeroFactura=='" + factura + "')]").exists());
+    }
+
+    @Test
+    void unBorradorNoSeAnulaYLaFacturaDeUnBorradorDa400() throws Exception {
+        String borrador = crearBorrador(CAJERO);
+
+        anular(borrador, ADMIN, "{\"motivo\":\"Motivo valido\"}", 400);
+        mockMvc.perform(get("/api/ventas/" + borrador + "/factura").with(CAJERO)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void laFacturaSeVeRegistradaOAnuladaYElCajeroSoloVeLaSuya() throws Exception {
+        prepararCatalogo();
+        crearProducto("0007202", 10, "2000");
+        String borrador = crearBorrador(CAJERO);
+        agregar(borrador, CAJERO, "0007202", 2, 200);
+        String factura = registrar(borrador, CAJERO);
+
+        mockMvc.perform(get("/api/ventas/" + factura + "/factura").with(CAJERO))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.numeroFactura").value(factura))
+                .andExpect(jsonPath("$.estado").value("REGISTRADA"))
+                .andExpect(jsonPath("$.total").value(4000.0))
+                .andExpect(jsonPath("$.lineas.length()").value(1));
+        mockMvc.perform(get("/api/ventas/" + factura + "/factura").with(OTRO_CAJERO)).andExpect(status().isNotFound());
+
+        anular(factura, ADMIN, "{\"motivo\":\"Devolucion total\"}", 200);
+        mockMvc.perform(get("/api/ventas/" + factura + "/factura").with(CAJERO))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("ANULADA"))
+                .andExpect(jsonPath("$.motivoAnulacion").value("Devolucion total"));
     }
 }
