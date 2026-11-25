@@ -585,6 +585,303 @@
       ]
     },
     {
+      "name": "Ventas",
+      "item": [
+        {
+          "name": "Crear venta: borrador con número propio y Consumidor final (RF-025)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201, borrador B-, en proceso y de Consumidor final', () => { pm.response.to.have.status(201); const j = pm.response.json(); pm.expect(j.estado).to.eql('EN_PROCESO'); pm.expect(j.numeroFactura).to.match(/^B-\\d{6}$/); pm.expect(j.consumidorFinal).to.eql(true); pm.expect(j.clienteNombre).to.eql('Consumidor final'); pm.expect(j.clienteDocumento).to.eql('222222222222'); pm.collectionVariables.set('borrador', j.numeroFactura); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Agregar producto 100001 (RF-026)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con una línea', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.lineas.length).to.eql(1); pm.expect(j.lineas[0].productoCodigo).to.eql('100001'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}/productos",
+            "body": { "mode": "raw", "raw": "{\"codigo\": \"100001\", \"cantidad\": 1}" }
+          }
+        },
+        {
+          "name": "Agregar un producto inactivo -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400: el producto 100002 está inactivo', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().message).to.include('inactivo'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}/productos",
+            "body": { "mode": "raw", "raw": "{\"codigo\": \"100002\", \"cantidad\": 1}" }
+          }
+        },
+        {
+          "name": "Agregar un producto inexistente -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}/productos",
+            "body": { "mode": "raw", "raw": "{\"codigo\": \"999999\", \"cantidad\": 1}" }
+          }
+        },
+        {
+          "name": "Agregar con cantidad cero -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}/productos",
+            "body": { "mode": "raw", "raw": "{\"codigo\": \"100001\", \"cantidad\": 0}" }
+          }
+        },
+        {
+          "name": "Consultar el borrador (RF-030)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200, en proceso y con su detalle', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.numeroFactura).to.eql(pm.collectionVariables.get('borrador')); pm.expect(j.estado).to.eql('EN_PROCESO'); pm.expect(j.lineas.length).to.eql(1); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}"
+          }
+        },
+        {
+          "name": "Quitar la línea 1 (RF-027)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y sin líneas ni total', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.lineas.length).to.eql(0); pm.expect(Number(j.total)).to.eql(0); });"
+          ] } }],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}/productos/1"
+          }
+        },
+        {
+          "name": "Registrar una venta sin productos -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400: la venta no tiene productos', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}/registrar"
+          }
+        },
+        {
+          "name": "Agregar otra vez el producto 100001",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con una línea', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().lineas.length).to.eql(1); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}/productos",
+            "body": { "mode": "raw", "raw": "{\"codigo\": \"100001\", \"cantidad\": 1}" }
+          }
+        },
+        {
+          "name": "Registrar la venta: recibe su número de factura (RF-025)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200, registrada y con número de factura F-', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.estado).to.eql('REGISTRADA'); pm.expect(j.numeroFactura).to.match(/^F-\\d{6}$/); pm.collectionVariables.set('factura', j.numeroFactura); pm.collectionVariables.set('ultimos4', j.numeroFactura.slice(-4)); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}/registrar"
+          }
+        },
+        {
+          "name": "El borrador ya no existe tras registrar -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404: el borrador se borró al registrar', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ventas/{{borrador}}"
+          }
+        },
+        {
+          "name": "Consultar la factura registrada (RF-030)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200, registrada y con su línea', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.numeroFactura).to.eql(pm.collectionVariables.get('factura')); pm.expect(j.estado).to.eql('REGISTRADA'); pm.expect(j.lineas.length).to.eql(1); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ventas/{{factura}}"
+          }
+        },
+        {
+          "name": "Buscar por los últimos 4 dígitos de la factura",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y aparece la factura', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().ventas.map(v => v.numeroFactura)).to.include(pm.collectionVariables.get('factura')); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ventas?texto={{ultimos4}}"
+          }
+        },
+        {
+          "name": "Buscar por producto y por fecha",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con total de ingresos', () => { pm.response.to.have.status(200); const j = pm.response.json(); pm.expect(j.total).to.be.at.least(1); pm.expect(Number(j.totalIngresos)).to.be.above(0); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ventas?producto=100001&desde=2020-01-01"
+          }
+        },
+        {
+          "name": "Buscar con un estado inválido -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400: los borradores no se buscan', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ventas?estado=EN_PROCESO"
+          }
+        },
+        {
+          "name": "Consultar una venta inexistente -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ventas/F-999999"
+          }
+        },
+        {
+          "name": "Nota de pedido sin cliente registrado -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400: una nota de pedido necesita un cliente registrado', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas",
+            "body": { "mode": "raw", "raw": "{\"notaPedido\": true}" }
+          }
+        },
+        {
+          "name": "Crear una venta y cancelarla (no queda nada guardado)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201', () => { pm.response.to.have.status(201); pm.collectionVariables.set('borradorCancelado', pm.response.json().numeroFactura); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Cancelar el borrador -> 204",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('204', () => pm.response.to.have.status(204));"
+          ] } }],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/ventas/{{borradorCancelado}}"
+          }
+        },
+        {
+          "name": "El borrador cancelado ya no existe -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ventas/{{borradorCancelado}}"
+          }
+        },
+        {
+          "name": "No se cancela una venta registrada -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/ventas/{{factura}}"
+          }
+        },
+        {
+          "name": "Crear otro borrador (lo usa la prueba del cajero)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201', () => { pm.response.to.have.status(201); pm.collectionVariables.set('borradorAjeno', pm.response.json().numeroFactura); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "Nota de pedido de un contacto nuevo (no es cliente registrado)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201, de un contacto de pedido', () => { pm.response.to.have.status(201); const j = pm.response.json(); pm.expect(j.contactoPedido).to.eql(true); pm.expect(j.contactoNombre).to.eql('Carlos Pérez'); pm.expect(j.clienteDocumento).to.eql('222222222222'); pm.collectionVariables.set('borradorContacto', j.numeroFactura); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas",
+            "body": { "mode": "raw", "raw": "{\"clienteDocumento\": \"40111222\", \"notaPedido\": true, \"contacto\": {\"telefono\": \"3201112222\", \"nombre\": \"Carlos Pérez\", \"correo\": \"carlos.perez@correo.test\", \"direccion\": \"Carrera 8 # 12-30, Yumbo\"}}" }
+          }
+        },
+        {
+          "name": "Consultar el contacto por su cédula",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 con sus datos', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().nombre).to.eql('Carlos Pérez'); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/contactos-pedido/40111222"
+          }
+        },
+        {
+          "name": "Consultar un contacto inexistente -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/contactos-pedido/3999999999"
+          }
+        },
+        {
+          "name": "Contacto nuevo sin correo ni dirección -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400: son obligatorios en un contacto nuevo', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().message).to.include('obligatorios'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas",
+            "body": { "mode": "raw", "raw": "{\"clienteDocumento\": \"40555000\", \"notaPedido\": true, \"contacto\": {\"telefono\": \"3105550000\", \"nombre\": \"Luis\"}}" }
+          }
+        },
+        {
+          "name": "Cancelar el borrador del contacto -> 204",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('204 (el contacto queda guardado para próximos pedidos)', () => pm.response.to.have.status(204));"
+          ] } }],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/ventas/{{borradorContacto}}"
+          }
+        }
+      ]
+    },
+    {
       "name": "Control por rol (Cajero)",
       "item": [
         {
@@ -728,6 +1025,30 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/clientes/80010001",
             "body": { "mode": "raw", "raw": "{\n  \"tipoDocumento\": \"CC\",\n  \"nombre\": \"Ana María\",\n  \"apellido\": \"Lopez\",\n  \"email\": \"ana.maria@correo.com\",\n  \"telefono\": \"3109876543\",\n  \"direccion\": \"Carrera 5 # 6-7\"\n}" }
+          }
+        },
+        {
+          "name": "Cajero agrega a un borrador de otro usuario -> 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403: solo quien creó la venta o un administrador la modifica', () => pm.response.to.have.status(403));"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ventas/{{borradorAjeno}}/productos",
+            "body": { "mode": "raw", "raw": "{\"codigo\": \"100001\", \"cantidad\": 1}" }
+          }
+        },
+        {
+          "name": "Cajero busca en un rango de más de un año -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400: el cajero no puede buscar en más de un año', () => { pm.response.to.have.status(400); pm.expect(pm.response.json().message).to.include('un año'); });"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenCajero}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ventas?desde=2003-12-06"
           }
         },
         {

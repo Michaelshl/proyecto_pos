@@ -204,3 +204,79 @@ Authorization: Bearer {{token}}
 ### Sugerencias de clientes para el autocompletado
 GET http://localhost:8081/api/clientes/sugerencias?q=ana
 Authorization: Bearer {{token}}
+
+### Ventas (RF-025 a RF-027, ADMIN y CAJERO). La venta es un BORRADOR con su propio número (B-000001) hasta que se registra.
+### 1) Crear el borrador. Sin clienteDocumento es de "Consumidor final" (222222222222). Con "notaPedido": true exige un cliente registrado.
+POST http://localhost:8081/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "clienteDocumento": "80010001",
+  "notaPedido": false
+}
+
+### 2) Agregar un producto (si el stock no alcanza, solo avisa en "advertencias"; un producto inactivo da 400)
+POST http://localhost:8081/api/ventas/B-000001/productos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "codigo": "100001",
+  "cantidad": 2
+}
+
+### 3) Quitar una línea
+DELETE http://localhost:8081/api/ventas/B-000001/productos/1
+Authorization: Bearer {{token}}
+
+### 4) Registrar: descuenta el stock de todos los productos (o no hace nada si alguno falla) y le asigna el número de factura (F-000001); el borrador desaparece
+POST http://localhost:8081/api/ventas/B-000001/registrar
+Authorization: Bearer {{token}}
+
+### Cancelar un borrador: no queda nada guardado (204)
+DELETE http://localhost:8081/api/ventas/B-000002
+Authorization: Bearer {{token}}
+
+### Consultar una venta por su número (RF-030). El cajero solo ve las suyas; sus datos de contacto salen enmascarados
+GET http://localhost:8081/api/ventas/F-000001
+Authorization: Bearer {{token}}
+
+### Buscar ventas: ?texto= (últimos dígitos de la factura o documento del cliente), ?desde= y ?hasta= (AAAA-MM-DD), ?producto= (código o nombre)
+### El administrador también filtra por ?estado=REGISTRADA|ANULADA y ?cajero=
+GET http://localhost:8081/api/ventas?texto=0001
+Authorization: Bearer {{token}}
+
+###
+GET http://localhost:8081/api/ventas?producto=agua&desde=2026-11-01&hasta=2026-11-30
+Authorization: Bearer {{token}}
+
+### Nota de pedido de alguien que NO es cliente registrado: la cédula es obligatoria y se guarda como contacto de pedido (la factura sale a Consumidor final)
+POST http://localhost:8081/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "clienteDocumento": "40111222",
+  "notaPedido": true,
+  "contacto": {
+    "telefono": "3201112222",
+    "nombre": "Carlos Pérez",
+    "correo": "carlos.perez@correo.test",
+    "direccion": "Carrera 8 # 12-30, Yumbo"
+  }
+}
+
+### Si la cédula ya está registrada como contacto basta con la cédula: se reutilizan sus datos
+POST http://localhost:8081/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "clienteDocumento": "40111222",
+  "notaPedido": true
+}
+
+### Consultar un contacto por su cédula (el cajero lo recibe con celular, correo y dirección enmascarados)
+GET http://localhost:8081/api/contactos-pedido/40111222
+Authorization: Bearer {{token}}
